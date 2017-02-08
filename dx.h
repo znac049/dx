@@ -17,6 +17,7 @@
 #include "Memory.h"
 #include "Utils.h"
 #include "Args.h"
+#include "Label.h"
 
 enum memoryType {
   MEM_BYTE, MEM_CODE, MEM_WORD, MEM_EMPTY, MEM_UNKNOWN

@@ -3,6 +3,13 @@
 
 #include <vector>
 
+typedef struct ParseOpt {
+  const char *optStr;
+  int flags;
+  void *target;
+  char shortOpt;
+} parseopt_t;
+
 typedef struct Option {
   char *option;
   char *valStr;
@@ -18,13 +25,17 @@ class Args {
  public:
   enum argType {short_switch, long_switch, argument};
   enum flags {inverted=1};
+  enum optionFlags {requires_argument=1, optional_argument=2, boolean_argument=4, numeric_argument=8};
 
  private:
   const char *getFlagStr(option_t *opt);
   int argIndex(const char *arg, int argType);
-  int argIndex(const char *longArg);
+  int argIndex(const char *arg);
   int argIndex(const char shortArg);
   void pairShortArg(char argCh, bool required);
+  void pairShortArgs(const char *shortArgStr);
+  void associateShortArgs(parseopt_t *opts);
+  void processArgs(parseopt_t *opts);
 
  protected:
  public:
@@ -32,7 +43,7 @@ class Args {
 
   void dump();
 
-  void pairShortArgs(const char *shortArgStr);
+  void parseArgs(parseopt_t *mandatory, parseopt_t *optional, bool fussy);
 };
 
 #endif

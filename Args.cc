@@ -9,13 +9,17 @@ Args::Args(int argc, char **argv) {
   int i = 1;
   option_t *opt;
 
-  printf("ArgC=%d, Args:\n", argc);
-
   while (i < argc) {
-    if (strncmp(argv[i], "--", 2) == 0) {
+    char *argStr = argv[i];
+
+    //printf("Processing arg '%s'\n", argStr);
+
+    if (strncmp(argStr, "--", 2) == 0) {
       char arg[MAXSTR];
       char *eq;
       int flags = 0;
+
+      //printf(" long\n");
       
       opt = new option_t();
       strcpy(arg, argv[i]);
@@ -42,9 +46,11 @@ Args::Args(int argc, char **argv) {
 
       options.push_back(opt);
     }
-    else if (argv[i][0] == '-') {
-      int len = strlen(argv[i]);
+    else if (argStr[0] == '-') {
+      int len = strlen(argStr);
       char tmp[2];
+      
+      //printf(" short\n");
 
       tmp[1] = EOS;
 
@@ -62,9 +68,11 @@ Args::Args(int argc, char **argv) {
       }
     }
     else {
+      //printf(" argument\n");
+
       opt = new option_t();
 
-      opt->option = strdup(argv[i]);
+      opt->option = strdup(argStr);
       opt->valStr = NULL;
       opt->optType = argument;
       opt->flags = 0;
@@ -122,8 +130,8 @@ void Args::pairShortArg(char argCh, bool required) {
   option_t *opt;
   int optInd = argIndex(argCh);
 
-  printf("Short arg '%c' %s have an argument\n", argCh, required?"must":"may");
-  printf("  index=%d\n", optInd);
+  //printf("Short arg '%c' %s have an argument\n", argCh, required?"must":"may");
+  //printf("  index=%d\n", optInd);
 
   if (optInd == -1) {
     return;
@@ -138,11 +146,11 @@ void Args::pairShortArg(char argCh, bool required) {
   for (int i=optInd+1; i<options.size(); i++) {
     option_t *arg = options.at(i);
 
-    printf("  does '%s' belong to it?\n", arg->option);
+    //printf("  does '%s' belong to it?\n", arg->option);
 
     if (arg->optType == long_switch) {
       if (required) {
-	throw CommandLineException().reasonf("Missing required argument.");
+	throw CommandLineException();
       }
 
       return;
@@ -195,8 +203,14 @@ int Args::argIndex(const char *arg, int argType) {
   return -1;
 }
 
-int Args::argIndex(const char *longArg) {
-  return argIndex(longArg, long_switch);
+int Args::argIndex(const char *arg) {
+  int optInd = argIndex(arg, long_switch);
+
+  if (optInd == -1) {
+    optInd = argIndex(arg, short_switch);
+  }
+
+  return optInd;
 }
 
 int Args::argIndex(const char shortArg) {
@@ -207,3 +221,109 @@ int Args::argIndex(const char shortArg) {
 
   return argIndex(longArg, short_switch);
 }
+
+void Args::associateShortArgs(parseopt_t *opts) {
+  parseopt_t *opt = opts;
+
+  while (opt->optStr != NULL) {
+    if (opt->shortOpt) {
+      pairShortArg(opt->shortOpt, opt->flags & requires_argument);
+    }
+
+    opt++;
+  }
+}
+
+void Args::processArgs(parseopt_t *opts) {
+  parseopt_t *opt = opts;
+
+  while (opt->optStr != NULL) {
+    int optInd = argIndex(opt->optStr);
+
+    if (optInd == -1) {
+      optInd = argIndex(opt->shortOpt);
+    }
+
+    printf("Arg '%s' -> %d\n", opt->optStr, optInd);
+    if (optInd != -1) {
+      option_t *arg = options.at(optInd);
+
+      printf("found match\n");
+
+      // Do we treat the argument as a string, nunber or flag/boolean?
+      if (opt->flags & numeric_argument) {
+	long *dest = (long *)opt->target;
+	printf("Numeric\n");
+
+	if (dest != NULL) {
+	  *dest = Utils::parseAddress(arg->valStr);
+	}
+      }
+      else if (opt->flags & boolean_argument) {
+	bool res = false;
+	bool *dest = (bool *)opt->target;
+
+	printf("Boolean\n");
+	if (arg->valStr == NULL) {
+	  res = (arg->flags & inverted)?false:true;
+	}
+	else {
+	  if ( (strcasecmp(arg->valStr, "yes") == 0) || 
+	       (strcasecmp(arg->valStr, "true") == 0) ||
+	       (strcasecmp(arg->valStr, "1") == 0) ) {
+	    res = true;
+	  }
+
+	  if (arg->flags & inverted) {
+	    res = !res;
+	  }
+	}
+
+	if (dest != NULL) {
+	  *dest= res;
+	}
+      }
+      else {
+	printf("String '%s'\n", arg->valStr);
+	if (opt->target != NULL) {
+	  char *cp = (char *)opt->target;
+	  printf("STRING '%s'\n", arg->valStr);
+	  strcpy(cp, arg->valStr);
+	}
+      }
+    }
+
+    opt++;
+  }
+}
+
+void Args::parseArgs(parseopt_t *mandatory, parseopt_t *optional, bool fussy) {
+  parseopt_t *opt = mandatory;
+
+  // Deal with any short args that must have an argument
+  associateShortArgs(mandatory);
+
+  // Now check all mandatory options are present and correct
+  opt = mandatory;
+  while (opt->optStr != NULL) {
+    int optInd = argIndex(opt->optStr);
+
+    if (optInd == -1) {
+      // long form not present, maybe the short one is
+      optInd = argIndex(opt->shortOpt);
+
+      if (optInd == -1) {
+	throw CommandLineException();
+      }
+    }
+
+    opt++;
+  }
+
+  // All mandatory args are present
+
+  processArgs(mandatory);
+  processArgs(optional);
+}
+
+

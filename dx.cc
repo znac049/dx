@@ -2,19 +2,20 @@
 #include <stdlib.h>
 #include <string.h>
 #include <strings.h>
-#include <getopt.h>
 
 #include "dx.h"
 
+bool verbose = false;
+
+char romFileName[MAXSTR];
+char labelFileName[MAXSTR];
+char cpuStr[MAXSTR];
+
+long romStart = 0xfff0;
+long romSize = 0;
+long romEnd = 0xffff;
+
 #if 0
-int verbose = NO;
-
-char rom_file[MAXSTR];
-char label_file[MAXSTR];
-
-address_t rom_start = 0xfff0;
-address_t rom_end = 0xffff;
-
 byte_t byteStack[MAX_BYTES_PER_LINE];
 int byteSP = 0;
 address_t byteAddr = 0;
@@ -22,19 +23,23 @@ address_t byteAddr = 0;
 word_t wordStack[MAX_WORDS_PER_LINE];
 int wordSP = 0;
 address_t wordAddr = 0;
+#endif
 
-static struct option long_options[] = {
-  
-  {"label-file",  required_argument,  NULL,  'l' },
-  {"rom-start",   required_argument,  NULL,  'b' },
-  {"rom-size",    required_argument,  NULL,  's' },
-  {"help",        no_argument,        NULL,  '?' },
-  {"verbose",     no_argument,        NULL,  'v' },
-  {NULL,          0,                  NULL,  0   }
+static parseopt_t mandatoryArgs[] = {
+  {"cpu",        Args::requires_argument,                 cpuStr, 'c'},
+  {"rom-start",  Args::requires_argument | Args::numeric_argument, &romStart, 'b'}, 
+  {"rom-size",   Args::requires_argument | Args::numeric_argument, &romSize, 's'},
+  {NULL,         0,                                       NULL, 0}
+}; 
+ 
+static parseopt_t optionalArgs[] = {
+  {"label-file",  Args::requires_argument,                labelFileName,  'l' },
+  {"help",        0,                                      NULL,  '?' },
+  {"verbose",     0,                                      NULL,  'v' },
+  {NULL,          0,                                      NULL,  0   }
 };
 
-static char *short_options = "l:b:s:hv";
-
+#if 0
 struct UsageMessage {
   char *opt;
   char *help_msg;
@@ -481,9 +486,21 @@ int main(int argc, char *argv[]) {
 #endif
 
   args.dump();
-
-  args.pairShortArgs("vf:c::d");
+  
+  try {
+    args.parseArgs(mandatoryArgs, optionalArgs, false);
+  }
+  catch (exception e) {
+    printf("Trouble parsing command line.\n");
+  }
   args.dump();
+
+  printf("  ROM File: '%s'\n", romFileName);
+  printf("Label File: '%s'\n", labelFileName);
+  printf("       CPU: '%s'\n", cpuStr);
+
+  printf(" ROM Start: $%04lx\n", romStart);
+  printf("   ROM End: $%04lx\n", romSize);
 
   return 0;
 }
