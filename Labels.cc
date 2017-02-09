@@ -1,174 +1,130 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <strings.h>
 
-#include "bda.h"
+#include "dx.h"
 
-extern int verbose;
-extern address_t rom_start;
-extern address_t rom_end;
+Labels::Labels(long start, long end) {
+  romStart = start;
+  romEnd = end;
+}
 
-label_t *LabelList = NULL;
+void Labels::exportLabels() {
+  int numLabels = labels.size();
 
-void export_labels() {
-  label_t *lab = LabelList;
+  printf("\n; Labels:\n;\n");
 
-  printf("; Labels:\n;\n");
+  for (int i=0; i<numLabels; i++) {
+    Label *lab = labels.at(i);
+    long addr = lab->getAddress();
 
-  while (lab != NULL) {
-    if ((lab->address < rom_start) || (lab->address > rom_end)) {
-      if (lab->name == NULL) {
+    if ((addr < romStart) || (addr > romEnd)) {
+      if (lab->getName() == NULL) {
 	char l[MAXSTR];
-	snprintf(l, MAXSTR-1, "L%04x", lab->address);
-	printf("%-21s = $%04x\n", l, lab->address);
+
+	snprintf(l, MAXSTR-1, "L%04x", addr);
+	printf("%-21s = $%04x\n", l, addr);
       }
       else {
-	printf("%-21s = $%04x\n", lab->name, lab->address);
+	printf("%-21s = $%04x\n", lab->getName(), addr);
       }
     }
-
-    lab = lab->next;
   }
 
   printf("\n");
 }
 
-void dump_labels() {
-  label_t *lab = LabelList;
+void Labels::createLabel(const char *lab, long addr) {
+  Label *label = new Label(lab, addr);
 
-  if (LabelList == NULL) {
-    if (verbose) {
-      printf("; No labels\n\n");
+  labels.push_back(label);
+}
+
+bool Labels::isLabel(long addr) {
+  int nLabels = labels.size();
+
+  for (int i=0; i<nLabels; i++) {
+    Label *lab = labels.at(i);
+
+    if (lab->getAddress() == addr) {
+      return true;
     }
-
-    return;
   }
 
-  printf("; Labels:\n;\n");
+  return false;
+}
 
-  while (lab != NULL) {
-    if ((lab->address < 0x6000) || (lab->address > 0x7fff)) {
-      if (lab->name == NULL) {
-	char l[MAXSTR];
-	snprintf(l, MAXSTR-1, "L%04x", lab->address);
-	printf("; %-21s = $%04x\n", l, lab->address);
-      }
-      else {
-	printf("; %-21s = $%04x\n", lab->name, lab->address);
-      }
+void Labels::lookupLabel(long addr, char *labStr, size_t labLen, int nDigits) {
+  Label *lab = findLabel(addr);
+  static char *fmt = (char *)"L%04x";
+
+  fmt[0] = 'L';
+  fmt[3] ='0' + nDigits;
+
+  if (lab != NULL) {
+    if (lab->getName() != NULL) {
+      strncpy(labStr, lab->getName(), labLen);
     }
-
-    lab = lab->next;
-  }
-
-  printf("\n");
-}
-
-int is_label(word_t addr) {
-  label_t *lab = LabelList;
-
-  while (lab != NULL) {
-    if (lab->address == addr) {
-      return 1;
+    else {
+      snprintf(labStr, labLen, fmt, lab->getAddress());
     }
-
-    lab = lab->next;
   }
-
-  return 0;
+  else {
+    fmt[0] = '$';
+    snprintf(labStr, labLen, fmt, addr);  
+  }
 }
 
-void lookup_label_fmt(address_t addr, char *lab_str, size_t lab_len, const char *fmt) {
-  label_t *lab = LabelList;
+Label *Labels::findLabel(long addr) {
+  int numLabels = labels.size();
 
-  while (lab != NULL) {
-    if (lab->address == addr) {
-      if (lab->name != NULL) {
-	snprintf(lab_str, lab_len, "%s", lab->name);
-      }
-      else {
-	snprintf(lab_str, lab_len, fmt, lab->address);
-      }
+  for (int i=0; i<numLabels; i++) {
+    Label *lab = labels.at(i);
 
-      return;
+    if (lab->getAddress() == addr) {
+      return lab;
     }
-
-    lab = lab->next;
   }
 
-  snprintf(lab_str, lab_len, "$%04X", addr);  
+  return NULL;
 }
 
-void lookup_label(address_t addr, char *lab_str, size_t lab_len) {
-  return lookup_label_fmt(addr, lab_str, lab_len, "L%04x");
+void Labels::lookupLabel(long addr, char *labStr) {
+  return lookupLabel(addr, labStr, MAXSTR-1, 4);
 }
 
-void lookup_direct_label(address_t addr, char *lab_str, size_t lab_len) {
-  return lookup_label_fmt(addr, lab_str, lab_len, "L%02x");
+void Labels::lookupShortLabel(long addr, char *labStr) {
+  return lookupLabel(addr, labStr, MAXSTR-1, 2);
 }
 
-void create_label(char *label, address_t addr) {
-  label_t *lab = LabelList;
-
-  if (verbose) {
-    printf("; Add label: '%s' = $%04x\n", label, addr);
-  }
-
-  while (lab != NULL) {
-    if (lab->address == addr) {
-      if (label != NULL) {
-	if (lab->name != NULL) {
-	  free(lab->name);
-	  lab->name = strdup(label);
-	}
-      }
-
-      return;
-    }
-
-    lab = lab->next;
-  }
-
-  lab = malloc(sizeof(label_t));
-  lab->address = addr;
-  lab->name = label;
-  if (label != NULL) {
-    lab->name = strdup(label);
-  }
-
-  lab->next = LabelList;
-  LabelList = lab;
-}
-
-void process_line(char *line) {
+void Labels::processLine(char *line) {
   char *eq = strchr(line, '=');
   char *lab = line;
   char *val;
 
   if (eq != NULL) {
-    word_t addr;
+    long addr;
 
     *eq++ = EOS;
     val = eq;
-    trim(lab);
-    trim(val);
+    Utils::trim(lab);
+    Utils::trim(val);
 
     if (strncmp(lab, "Symbol: ", 8) == 0) {
-      // lwasm map file
+      // massage lwasm map entry
       lab += 8;
 
       eq = strchr(lab, ' ');
       if (eq != NULL) {
 	*eq = EOS;
       }
-      trim(lab);
+      Utils::trim(lab);
 
-      sprintf(val, "$%04x", hex2int(val, 0));
+      sprintf(val, "$%04x", Utils::hex2int(val));
     }
 
-    addr = parse_address(val);
-    create_label(lab, addr);
+    addr = Utils::parseAddress(val);
+    createLabel(lab, addr);
   }
   else {
     if (strcmp(line, "") != 0) {
@@ -177,9 +133,9 @@ void process_line(char *line) {
   }
 }
 
-int read_label_file(const char *file_name) {
-  int num_labels = 0;
-  FILE *fd = fopen(file_name, "r");
+int Labels::readFile(const char *fileName) {
+  int numLabels = 0;
+  FILE *fd = fopen(fileName, "r");
   char line[MAXSTR + 2]; // This is horrible, but necessary!
 
   if (!fd) {
@@ -187,15 +143,13 @@ int read_label_file(const char *file_name) {
   }
 
   while (fgets(line, MAXSTR-1, fd) != NULL) {
-    char *semi = strchr(line, ';');
+    Utils::truncStr(line, '\n');
+    Utils::truncStr(line, ';');
 
-    trunc_str(line, '\n');
-    trunc_str(line, ';');
-
-    process_line(line);
+    processLine(line);
   }
 
   fclose(fd);
 
-  return num_labels;
+  return numLabels;
 }

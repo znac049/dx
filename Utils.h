@@ -3,9 +3,8 @@
 
 class Utils {
  private:
-  static char *truncStr(char *s, char c);
-
  public:
+  static char *truncStr(char *s, char c);
   static bool isHexChar(char c);
   static int hexVal(char c);
   static long hex2int(char *str);
