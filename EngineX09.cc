@@ -3,86 +3,13 @@
 #include <string.h>
 #include <strings.h>
 
-#include "bda.h"
+#include "dx.h"
 
-#include "inst-6809.inc"
-
-static address_t pc;
-
-static char label[MAXSTR];
-
-extern int verbose;
-
-static byte_t fetch8() {
-  if (!valid_address(pc)) {
-    abortf("fetch8() - Address out of range: $%x\n", pc);
-  }
-
-  return get_byte(pc++);
+void EngineX09::initialise() {
+  printf("6809 engine ready.\n");
 }
 
-static word_t fetch16() {
-  word_t val;
-
-  if (!valid_address(pc)) {
-    abortf("fetch16() - Address out of range: $%x\n", pc);
-  }
-  
-  val = get_word(pc);
-  pc += 2;
-
-  return val;
-}
-
-static dword_t fetch32() {
-  word_t val;
-
-  if (!valid_address(pc)) {
-    abortf("fetch32() - Address out of range: $%x\n", pc);
-  }
-  
-  val = get_dword(pc);
-  pc += 4;
-
-  return val;
-}
-
-static address_t fetch8_label() {
-  address_t b = (address_t) fetch8();
-
-  lookup_direct_label(b, label, MAXSTR-1);
-
-  return b;
-}
-
-static address_t fetch8_rlabel() {
-  char offset = (char) fetch8();
-  int target = (int)pc + offset;
-
-  //commentf("SHORT REL: PC=$%04x, offset=%d, target=$%04x\n", pc, offset, target);
-  lookup_direct_label(target, label, MAXSTR-1);
-
-  return target;
-}
-
-static address_t fetch16_label() {
-  address_t b = (address_t) fetch16();
-
-  lookup_label(b, label, MAXSTR-1);
-
-  return b;
-}
-
-static address_t fetch16_rlabel() {
-  short int offset = (short int) fetch16();
-  int target = (int)pc + offset;
-
-  //commentf("LONG REL: PC=$%04x, offset=%d, target=$%04x\n", pc, offset, target);
-  lookup_label(target, label, MAXSTR-1);
-
-  return target;
-}
-
+#if 0
 static int da_reglist(char *buf, const char *mnem, opcode_t *opcode) {
   char regList[MAXSTR];
   byte_t b = fetch8();
@@ -482,3 +409,4 @@ int disassemble(address_t addr, outputItem_t *res, int pass1) {
   return memory_is_code(addr, pc-addr);
 }
 
+#endif

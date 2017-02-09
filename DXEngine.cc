@@ -5,16 +5,31 @@
 
 #include "dx.h"
 
-DXEngine::DXEngine(long beg, long end) {
+#if 0
+static parseopt_t mandatoryArgs[] = {
+  {"cpu",        Args::requires_argument,                 cpuStr, 'c'},
+  {"rom-start",  Args::requires_argument | Args::numeric_argument, &romStart, 'b'}, 
+  {"rom-size",   Args::requires_argument | Args::numeric_argument, &romSize, 's'},
+  {NULL,         0,                                       NULL, 0}
+}; 
+ 
+static parseopt_t optionalArgs[] = {
+  {"help",        0,                                      NULL,  '?' },
+  {"verbose",     0,                                      NULL,  'v' },
+  {NULL,          0,                                      NULL,  0   }
+};
+#endif
+
+DXEngine::DXEngine(Args *args, long beg, long end) {
   romStart = beg;
   romEnd = end;
 
-  initialise();
+  mem = new Memory(0x10000);
+  labels = new Labels(romStart, romEnd);
 }
 
 void DXEngine::initialise() {
-  mem = new Memory(0x10000);
-  labels = new Labels(romStart, romEnd);
+  printf("DXEngine initialised\n");
 }
 
 void DXEngine::stackAddress(long addr) {

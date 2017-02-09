@@ -17,7 +17,7 @@ class DXEngine {
  private:
  protected:
  public:
-  DXEngine(long beg, long end);
+  DXEngine(Args *args, long beg, long end);
 
   virtual void initialise();
 

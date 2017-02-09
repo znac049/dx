@@ -5,220 +5,8 @@
 
 #include "dx.h"
 
-bool verbose = false;
-
-char romFileName[MAXSTR];
-char labelFileName[MAXSTR];
-char cpuStr[MAXSTR];
-
-long romStart = 0xfff0;
-long romSize = 0;
-long romEnd = 0xffff;
-
 #if 0
-byte_t byteStack[MAX_BYTES_PER_LINE];
-int byteSP = 0;
-address_t byteAddr = 0;
-
-word_t wordStack[MAX_WORDS_PER_LINE];
-int wordSP = 0;
-address_t wordAddr = 0;
-#endif
-
-static parseopt_t mandatoryArgs[] = {
-  {"cpu",        Args::requires_argument,                 cpuStr, 'c'},
-  {"rom-start",  Args::requires_argument | Args::numeric_argument, &romStart, 'b'}, 
-  {"rom-size",   Args::requires_argument | Args::numeric_argument, &romSize, 's'},
-  {NULL,         0,                                       NULL, 0}
-}; 
- 
-static parseopt_t optionalArgs[] = {
-  {"label-file",  Args::requires_argument,                labelFileName,  'l' },
-  {"help",        0,                                      NULL,  '?' },
-  {"verbose",     0,                                      NULL,  'v' },
-  {NULL,          0,                                      NULL,  0   }
-};
-
-#if 0
-struct UsageMessage {
-  char *opt;
-  char *help_msg;
-};
-
-static struct UsageMessage usage_messages[] = {
-  {"l", "Load label file"},
-  {"b", "Specify ROM start address"},
-  {"s", "Specify ROM size"},
-  {"v", "Be verbose"},
-  {"?", "Show this help message"},
-  {NULL, NULL}
-};
-
-static char program_name[MAXSTR];
-
 #define max(a,b) ((a>b)?a:b)
-
-struct option *find_longopt(const char *optName)
-{
-  struct option *opt = long_options;
-  int len = strlen(optName);
-
-
-  while (opt->name) {
-    if (strcmp(optName, opt->name) == 0) {
-      return opt;
-    }
-
-    if ((len == 1) && (optName[0] == opt->val)) {
-      return opt;
-    }
-
-    opt++;
-  }
-
-  return NULL;
-}
-
-void usage() {
-  char options[MAXSTR];
-  struct UsageMessage *msg = usage_messages;
-  struct option *opt;
-  int longest = 0;
-  char fmt[MAXSTR];
-
-  printf("\nUsage: %s [ <args> ] <rom file>\n\n", program_name);
-
-  while (msg->opt != NULL) {
-    opt = find_longopt(msg->opt);
-    if (opt != NULL) {
-      if ((opt->val > ' ') && (opt->val < 127)) {
-	snprintf(options, MAXSTR-1, "--%s | -%c", opt->name, opt->val);
-      } 
-      else {
-	snprintf(options, MAXSTR-1, "--%s", opt->name);
-      }  
-    }
-    else {
-      if (strlen(msg->opt) == 1) {
-	snprintf(options, MAXSTR-1, "-%s", opt->name);
-      }
-      else {
-	snprintf(options, MAXSTR-1, "--%s", opt->name);
-      }
-    }
-
-    if (opt) {
-      int len = strlen(options);
-      char *cp = &options[len];
-      
-      len = MAXSTR - len;
-
-      switch (opt->has_arg) {
-      case no_argument:
-	break;
-
-      case required_argument:
-	strncpy(cp, " <value>", len-1);
-	break;
-	
-      case optional_argument:
-	strncpy(cp, " [ <value> ]", len-1);
-	break;
-
-      default:
-	strncpy(cp, " ???", len-1);
-	break;
-      }
-    }
-
-    printf("  %-31s %s\n", options, msg->help_msg);
-
-    msg++;
-  }
-
-  printf("\n");
-}
-
-void parse_args(int argc, char *argv[]) {
-  int opt = 0;
-  int long_index = 0;
-  int rom_size = 2048;
-
-  strncpy(program_name, argv[0], MAXSTR-1);
-
-  strcpy(rom_file, "");
-  strcpy(label_file, "");
-
-  while ((opt = getopt_long(argc, argv, short_options, long_options, &long_index )) != -1) {
-    switch (opt) {
-    case 'b':
-      rom_start = parse_address(optarg);
-      break;
-
-    case 's':
-      rom_size = parse_address(optarg);
-      break;
-
-    case 'v':
-      verbose = YES;
-      break;
-
-    case '?':
-    default: 
-      usage(); 
-      exit(1);
-    }
-  }
-
-  /* There should be just one arg left, the name of the ROM file */
-  if ((optind+1) != argc) {
-    fprintf(stderr, "ROM file name missing.\n");
-    usage();
-    exit(1);
-  }
-
-  rom_end = rom_start + rom_size - 1;
-  if (rom_end > K64) {
-    fprintf(stderr, "Check rom start and size as it appears to go beyond the\n");
-    fprintf(stderr, "end of memory: %04x - %04d\n", rom_start, rom_end);
-    exit(1);
-  }
-
-  if (label_file[0]) {
-    /* Make sure the label file specified actually exists */
-    if (!is_file(label_file)) {
-      fprintf(stderr, "Label file '%s'not found or is not a regular file.\n", label_file);
-      exit(1);
-    }
-  }
-
-  strncpy(rom_file, argv[argc-1], MAXSTR-1);
-
-  if (verbose) {
-    printf("; Command line parsed ok:\n");
-    printf(";     rom base: %04x\n", rom_start);
-    printf(";      rom end: %04x\n", rom_end);
-    printf(";  RESET entry: %04x\n", reset_entrypoint);
-    printf(";    NMI entry: %04x\n", nmi_entrypoint);
-    printf(";    SWI entry: %04x\n", swi_entrypoint);
-    printf(";    IRQ entry: %04x\n", irq_entrypoint);
-    printf(";   FIRQ entry: %04x\n", firq_entrypoint);
-    printf(";   SWI2 entry: %04x\n", swi2_entrypoint);
-    printf(";   SWI3 entry: %04x\n", swi3_entrypoint);
-    printf(";      verbose: %s\n", (verbose==YES)?"YES":"NO");
-    printf(";     ROM file: %s\n", rom_file);
-    printf(";   Label file: %s\n", label_file[0]?label_file:"*None*");
-    puts(";\n");
-  }
-}
-
-void clear_output_item(outputItem_t *oi) {
-  strcpy(oi->label, "");
-  strcpy(oi->inst, "");
-  strcpy(oi->comment, "");
-
-  oi->address = 0;
-}
 
 void set_starting_address(address_t addr, address_t vector, char *lab) {
   char vecLab[MAXSTR];
@@ -470,6 +258,27 @@ void generate_listing() {
 int main(int argc, char *argv[]) {
   Args args(argc, argv);
 
+  char cpuStr[MAXSTR];
+
+  long romStart = 0xfff0;
+  long romSize = 0;
+  long romEnd = 0xffff;
+  bool verbose = false;
+
+  parseopt_t mandatoryArgs[] = {
+    {"cpu",        Args::requires_argument,                          cpuStr, 'c'},
+    {"rom-start",  Args::requires_argument | Args::numeric_argument, &romStart, 'b'}, 
+    {"rom-size",   Args::requires_argument | Args::numeric_argument, &romSize, 's'},
+    {NULL,         0,                                                NULL, 0}
+  }; 
+ 
+  parseopt_t optionalArgs[] = {
+    {"help",     0, &verbose,  '?' },
+    {"verbose",  0, NULL,      'v' },
+    {NULL,       0, NULL,      0   }
+  };
+
+
 #if 0
   parse_args(argc, argv);
    
@@ -485,22 +294,20 @@ int main(int argc, char *argv[]) {
   generate_listing();
 #endif
 
-  args.dump();
-  
   try {
+    DXEngine *engine = NULL;
+
     args.parseArgs(mandatoryArgs, optionalArgs, false);
+
+    if (strcmp(cpuStr, "6809") == 0) {
+      engine = (DXEngine *)new EngineX09(&args, romStart, romEnd);
+    }
+
+    engine->initialise();
   }
   catch (exception e) {
     printf("Trouble parsing command line.\n");
   }
-  args.dump();
-
-  printf("  ROM File: '%s'\n", romFileName);
-  printf("Label File: '%s'\n", labelFileName);
-  printf("       CPU: '%s'\n", cpuStr);
-
-  printf(" ROM Start: $%04lx\n", romStart);
-  printf("   ROM End: $%04lx\n", romSize);
 
   return 0;
 }

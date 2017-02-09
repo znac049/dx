@@ -244,16 +244,14 @@ void Args::processArgs(parseopt_t *opts) {
       optInd = argIndex(opt->shortOpt);
     }
 
-    printf("Arg '%s' -> %d\n", opt->optStr, optInd);
+    //printf("Arg '%s' -> %d\n", opt->optStr, optInd);
     if (optInd != -1) {
       option_t *arg = options.at(optInd);
-
-      printf("found match\n");
 
       // Do we treat the argument as a string, nunber or flag/boolean?
       if (opt->flags & numeric_argument) {
 	long *dest = (long *)opt->target;
-	printf("Numeric\n");
+	//printf("Numeric\n");
 
 	if (dest != NULL) {
 	  *dest = Utils::parseAddress(arg->valStr);
@@ -263,7 +261,7 @@ void Args::processArgs(parseopt_t *opts) {
 	bool res = false;
 	bool *dest = (bool *)opt->target;
 
-	printf("Boolean\n");
+	//printf("Boolean\n");
 	if (arg->valStr == NULL) {
 	  res = (arg->flags & inverted)?false:true;
 	}
@@ -284,10 +282,9 @@ void Args::processArgs(parseopt_t *opts) {
 	}
       }
       else {
-	printf("String '%s'\n", arg->valStr);
+	//printf("String '%s'\n", arg->valStr);
 	if (opt->target != NULL) {
 	  char *cp = (char *)opt->target;
-	  printf("STRING '%s'\n", arg->valStr);
 	  strcpy(cp, arg->valStr);
 	}
       }
