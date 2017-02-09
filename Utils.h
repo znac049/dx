@@ -17,6 +17,8 @@ class Utils {
   static void trim(char *s);
 
   static char printableChar(char ch);
+
+  static void abortf(const char *fmt, ...);
 };
 
 #endif

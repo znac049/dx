@@ -1,4 +1,4 @@
-SRC = dx.cc Args.cc Label.cc Labels.cc Memory.cc MemoryCell.cc Utils.cc
+SRC = dx.cc Args.cc DXEngine.cc Label.cc Labels.cc Memory.cc MemoryCell.cc Utils.cc
 OBJ=$(subst .cc,.o,$(SRC))
 HDRS=$(wildcard *.h)
 

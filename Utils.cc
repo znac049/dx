@@ -6,6 +6,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
+#include <stdarg.h>
 
 #include "dx.h"
 
@@ -143,4 +144,14 @@ char Utils::printableChar(char ch) {
   }
 
   return ch;
+}
+
+void Utils::abortf(const char *fmt, ...) {
+  va_list args;
+
+  va_start(args, fmt);
+  vprintf(fmt, args);
+  va_end(args);
+
+  exit(1);
 }
