@@ -8,41 +8,6 @@
 #if 0
 #define max(a,b) ((a>b)?a:b)
 
-void set_starting_address(address_t addr, address_t vector, char *lab) {
-  char vecLab[MAXSTR];
-
-  if (verbose) {
-    printf("set_starting_address($%04x, %d, '%s')\n", addr, vector, lab);
-  }
-
-  if (addr == 0xffff) {
-    // read the address from the vector (if we have vector table in memory
-    if (get_memory_type(vector) == MEM_EMPTY) {
-      return;
-    }
-
-    addr = get_word(vector);
-
-    snprintf(vecLab, MAXSTR-1, "%sVector", lab);
-    create_label(vecLab, vector);
-  }
-
-  stack_address(addr);
-  create_label(lab, addr);
-}
-
-void set_starting_point() {
-  set_starting_address(reset_entrypoint, RESET_VEC, "Reset");
-  set_starting_address(nmi_entrypoint, NMI_VEC, "NMI");
-  set_starting_address(swi_entrypoint, SWI_VEC, "SWI");
-  set_starting_address(irq_entrypoint, IRQ_VEC, "IRQ");
-  set_starting_address(firq_entrypoint, FIRQ_VEC, "FIRQ");
-  set_starting_address(swi2_entrypoint, SWI2_VEC, "SWI2");
-  set_starting_address(swi3_entrypoint, SWI3_VEC, "SWI3");
-
-  memory_is_word(SWI3_VEC, 7);
-}
-
 void pass1() {
   address_t addr;
   int nBytes;
@@ -56,11 +21,6 @@ void pass1() {
 
     if ((addr >= rom_start) && (addr <= rom_end)) {
       /* Disassemble each chunk until we hit an unknown instruction */
-      nBytes = disassemble(addr, &inst, YES);
-      while (nBytes > 0) {
-	addr += nBytes;
-	nBytes = disassemble(addr, &inst, YES);
-      }
     }
   }
 }
@@ -278,16 +238,7 @@ int main(int argc, char *argv[]) {
     {NULL,       0, NULL,      0   }
   };
 
-
 #if 0
-  parse_args(argc, argv);
-   
-  init_memory();
-  if (read_file(rom_file, rom_start) == NO) {
-    fprintf(stderr, "Problem reading ROM file '%s'\n", rom_file);
-    exit(1);
-  }
-
   read_label_file(label_file);
 
   pass1();
@@ -303,7 +254,10 @@ int main(int argc, char *argv[]) {
       engine = (DXEngine *)new EngineX09(&args, romStart, romEnd);
     }
 
-    engine->initialise();
+    if (engine != NULL) {
+      engine->initialise();
+      engine->disassemble();
+    }
   }
   catch (exception e) {
     printf("Trouble parsing command line.\n");

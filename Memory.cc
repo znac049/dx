@@ -8,9 +8,11 @@
 Memory::Memory(long mSize) {
   memorySize = mSize;
   memory = new MemoryCell*[memorySize];
+  cellTypes = new unsigned char[memorySize];
 
   for (int i=0; i<memorySize; i++) {
     memory[i] = new MemoryCell();
+    cellTypes[i] = UNKNOWN;
   }
 }
 
@@ -78,8 +80,15 @@ void Memory::setDword(long addr, int val) {
   throw exception();
 }
 
-#if 0
-memoryType_t get_memory_type(address_t addr) {
-  return MemoryType[addr];
+int Memory::setType(long addr, int type, int count) {
+  int size = (type == WORD)?2:1;
+
+  count = count * size;
+  for (int i=0; i<count; i++) {
+    if (isValidAddress(addr+i)) {
+      cellTypes[addr+i] = type;
+    }
+  }
+
+  return count;
 }
-#endif

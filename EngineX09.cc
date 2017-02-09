@@ -6,6 +6,52 @@
 #include "dx.h"
 
 void EngineX09::initialise() {
+  int numArgs = args->getArgC(Args::argument);
+  const int req = Args::requires_argument;
+  const int reqNum = Args::requires_argument | Args::numeric_argument;
+  bool verbose;
+  char labFile[MAXSTR];
+  char cpuStr[MAXSTR];
+
+  if (numArgs != 1) {
+    Utils::abortf("Just one rom file expected\n");
+  }
+
+  parseopt_t mandatoryArgs[] = {
+    {"cpu",        req,    cpuStr, 'c'},
+    {"rom-start",  reqNum, NULL,   'b'}, 
+    {"rom-size",   reqNum, NULL,   's'},
+    {NULL,         0,      NULL,   0}
+  }; 
+ 
+  parseopt_t optionalArgs[] = {
+    {"label-file", req, labFile,   'l'},
+    {"help",       0,   NULL,      '?'},
+    {"verbose",    0,   &verbose,  'v'},
+    {NULL,         0,   NULL,      0}
+  };
+
+  try {
+    args->parseArgs(mandatoryArgs, optionalArgs, true);
+
+    if (args->hasArg("label-file")) {
+      labels->readFile(labFile);
+    }
+  }
+  catch (CommandLineException e) {
+    Utils::abortf("Bad command line.\n");
+  }
+
+  readVector(RESETVec, "Reset");
+  readVector(NMIVec,   "NMI");
+  readVector(SWIVec,   "SWI");
+  readVector(IRQVec,   "IRQ");
+  readVector(FIRQVec,  "FIRQ");
+  readVector(SWI2Vec,  "SWI2");
+  readVector(SWI3Vec,  "SWI3");
+
+  mem->setType(SWI3Vec, Memory::WORD, 7);
+
   printf("6809 engine ready.\n");
 }
 

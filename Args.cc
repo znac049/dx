@@ -8,6 +8,13 @@
 Args::Args(int argc, char **argv) {
   int i = 1;
   option_t *opt;
+  char *slash;
+
+  shortName = longName = strdup(argv[0]);
+  slash = strrchr(longName, '/');
+  if (slash != NULL) {
+    shortName = ++slash;
+  }
 
   while (i < argc) {
     char *argStr = argv[i];
@@ -187,6 +194,10 @@ void Args::pairShortArgs(const char *shortArgStr) {
   }
 }
 
+bool Args::hasArg(const char *arg, int argType) {
+  return (argIndex(arg, argType) != -1);
+}
+
 int Args::argIndex(const char *arg, int argType) {
   option_t *opt;
 
@@ -203,6 +214,10 @@ int Args::argIndex(const char *arg, int argType) {
   return -1;
 }
 
+bool Args::hasArg(const char *arg) {
+  return (argIndex(arg) != -1);
+}
+
 int Args::argIndex(const char *arg) {
   int optInd = argIndex(arg, long_switch);
 
@@ -211,6 +226,10 @@ int Args::argIndex(const char *arg) {
   }
 
   return optInd;
+}
+
+bool Args::hasArg(const char shortArg) {
+  return (argIndex(shortArg) != -1);
 }
 
 int Args::argIndex(const char shortArg) {
@@ -323,4 +342,44 @@ void Args::parseArgs(parseopt_t *mandatory, parseopt_t *optional, bool fussy) {
   processArgs(optional);
 }
 
+int Args::getArgC() {
+  return options.size();
+}
 
+int Args::getArgC(int argType) {
+  int numArgs = options.size();
+  int res = 0;
+
+  for (int i=0; i<numArgs; i++) {
+    if (options.at(i)->optType == argType) {
+      res++;
+    }
+  }
+
+  return res;
+}
+
+option_t *Args::getArg(int argNum) {
+  if ((argNum >= 0) && (argNum < options.size())) {
+    return options.at(argNum);
+  }
+
+  return NULL;
+}
+
+option_t *Args::getArg(int argNum, int argType) {
+  int numArgs = options.size();
+  int hits = -1;
+
+  for (int i=0; i<numArgs; i++) {
+    if (options.at(i)->optType == argType) {
+      hits++;
+
+      if (hits == argNum) {
+	return options.at(i);
+      }
+    }
+  }
+
+  return NULL;
+}

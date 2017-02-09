@@ -20,6 +20,8 @@ typedef struct Option {
 class Args {
  private:
   std::vector<option_t *> options;
+  char *longName;
+  char *shortName;
 
  protected:
  public:
@@ -44,6 +46,16 @@ class Args {
   void dump();
 
   void parseArgs(parseopt_t *mandatory, parseopt_t *optional, bool fussy);
+
+  int getArgC();
+  int getArgC(int argType);
+
+  option_t *getArg(int argNum);
+  option_t *getArg(int argNum, int argType);
+
+  bool hasArg(const char *arg, int argType);
+  bool hasArg(const char *arg);
+  bool hasArg(const char shortArg);
 };
 
 #endif

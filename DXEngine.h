@@ -4,6 +4,7 @@
 class DXEngine {
  private:
  protected:
+  Args *args;
   long romStart;
   long romEnd;
 
@@ -26,6 +27,7 @@ class DXEngine {
   int fetch32();
 
   void stackAddress(long addr);
+  void readVector(long addr, const char *vecName);
 
   void disassemble();
   virtual int disassemble(long addr);

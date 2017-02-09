@@ -4,10 +4,12 @@
 class Memory {
  private:
   MemoryCell **memory;
+  unsigned char *cellTypes;
   long memorySize;
 
  protected:
  public:
+  enum MemoryType {UNKNOWN, BYTE, WORD, CODE};
 
  private:
   void assertAddressValid(long addr);
@@ -25,6 +27,8 @@ class Memory {
   void setWord(long addr, int val);
   int getDword(long addr);
   void setDword(long addr, int val);
+
+  int setType(long addr, int type, int count);
 };
 
 #endif
