@@ -19,8 +19,10 @@
 #include "Args.h"
 #include "Label.h"
 #include "Labels.h"
+#include "OutputItem.h"
 #include "DXEngine.h"
 #include "EngineX09.h"
+#include "EngineDVG.h"
 
 enum memoryType {
   MEM_BYTE, MEM_CODE, MEM_WORD, MEM_EMPTY, MEM_UNKNOWN

@@ -4,6 +4,7 @@
 class MemoryCell {
  private:
   int value;
+  int type;
 
  protected:
  public:
@@ -16,6 +17,9 @@ class MemoryCell {
 
   void set(int val);
   int get();
+
+  void setType(int typ);
+  int getType();
 };
 
 #endif

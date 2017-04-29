@@ -2,10 +2,12 @@ SRC = dx.cc \
 	Args.cc \
 	DXEngine.cc \
 	EngineX09.cc \
+	EngineDVG.cc \
 	Label.cc \
 	Labels.cc \
 	Memory.cc \
 	MemoryCell.cc \
+	OutputItem.cc \
 	Utils.cc
 
 OBJ=$(subst .cc,.o,$(SRC))

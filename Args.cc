@@ -371,11 +371,15 @@ option_t *Args::getArg(int argNum, int argType) {
   int numArgs = options.size();
   int hits = -1;
 
+  printf("getArg(%d, %d)\n");
+  dump();
+
   for (int i=0; i<numArgs; i++) {
     if (options.at(i)->optType == argType) {
       hits++;
 
       if (hits == argNum) {
+	printf("Found at %d\n", i);
 	return options.at(i);
       }
     }

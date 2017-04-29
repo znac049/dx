@@ -238,20 +238,25 @@ int main(int argc, char *argv[]) {
     {NULL,       0, NULL,      0   }
   };
 
-#if 0
-  read_label_file(label_file);
-
-  pass1();
-  generate_listing();
-#endif
-
   try {
     DXEngine *engine = NULL;
+    int numArgs;
+    option_t *arg;
 
     args.parseArgs(mandatoryArgs, optionalArgs, false);
+    numArgs = args.getArgC(Args::argument);
+
+    if (numArgs != 1) {
+      Utils::abortf("Only one filename expected.\n");
+    }
+
+    arg = args.getArg(0, Args::argument);
 
     if (strcmp(cpuStr, "6809") == 0) {
-      engine = (DXEngine *)new EngineX09(&args, romStart, romEnd);
+      engine = (DXEngine *)new EngineX09(&args, romStart, romEnd, arg->option);
+    }
+    else if (strcmp(cpuStr, "dvg") == 0) {
+      engine = (DXEngine *)new EngineDVG(&args, romStart, romEnd, arg->option);
     }
 
     if (engine != NULL) {

@@ -1,11 +1,13 @@
 #ifndef _MEMORY_H_
 #define _MEMORY_H_
 
+#include <vector>
+
 class Memory {
  private:
-  MemoryCell **memory;
-  unsigned char *cellTypes;
+  std::vector<MemoryCell *> memory;
   long memorySize;
+  bool bigEndian;
 
  protected:
  public:
@@ -20,6 +22,7 @@ class Memory {
 
   long readFile(const char *file_name, long addr);
 
+  void setEndian(bool big);
   bool isValidAddress(long addr);
   int getByte(long addr);
   void setByte(long addr, int val);

@@ -7,13 +7,20 @@
 
 Memory::Memory(long mSize) {
   memorySize = mSize;
-  memory = new MemoryCell*[memorySize];
-  cellTypes = new unsigned char[memorySize];
+  memory.clear();
+  memory.reserve(memorySize);
+
+  printf("Memory size=%d\n", memorySize);
 
   for (int i=0; i<memorySize; i++) {
     memory[i] = new MemoryCell();
-    cellTypes[i] = UNKNOWN;
   }
+
+  bigEndian = true;
+}
+
+void Memory::setEndian(bool big) {
+  bigEndian = big;
 }
 
 bool Memory::isValidAddress(long addr) {
@@ -26,20 +33,31 @@ void Memory::assertAddressValid(long addr) {
   }
 }
 
-long Memory::readFile(const char *file_name, long addr) {
-  FILE *fd = fopen(file_name, "rb");
+long Memory::readFile(const char *fileName, long addr) {
+  FILE *fd = fopen(fileName, "rb");
   int nBytes = 0;
+
+  printf("Read file '%s' into memory at $%04x\n", fileName, addr);
 
   if (!fd) {
     return NO;
   }
 
   while(!feof(fd)) {
-    memory[addr+nBytes]->set(fgetc(fd));
-    nBytes++;
+    int c = fgetc(fd);
+
+    if (c != EOF) {
+      if (isValidAddress(addr)) {
+	memory[addr++]->set(c);
+      }
+
+      nBytes++;
+    }
   }
 
   fclose(fd);
+
+  printf("%d bytes read\n", nBytes);
 
   return nBytes;
 }
@@ -57,12 +75,12 @@ void Memory::setByte(long addr, int b) {
 }
 
 int Memory::getWord(long addr) {
-  int lsb, msb;
+  int b1, b2;
 
-  lsb = memory[addr+1]->get();
-  msb = memory[addr]->get();
+  b1 = memory[addr]->get();
+  b2 = memory[addr+1]->get();
 
-  return lsb | (msb << 8);
+  return bigEndian ? ((b1<<8) | b2) : ((b2<<8) | b1);
 }
 
 int Memory::getDword(long addr) {
@@ -86,7 +104,7 @@ int Memory::setType(long addr, int type, int count) {
   count = count * size;
   for (int i=0; i<count; i++) {
     if (isValidAddress(addr+i)) {
-      cellTypes[addr+i] = type;
+      memory[addr+i]->setType(type);
     }
   }
 

@@ -20,13 +20,15 @@ static parseopt_t optionalArgs[] = {
 };
 #endif
 
-DXEngine::DXEngine(Args *arguments, long beg, long end) {
+DXEngine::DXEngine(Args *arguments, long beg, long end, const char *romFile) {
   args = arguments;
 
   romStart = beg;
   romEnd = end;
 
   mem = new Memory(0x10000);
+  mem->readFile(romFile, romStart);
+
   labels = new Labels(romStart, romEnd);
 }
 
@@ -34,9 +36,24 @@ void DXEngine::initialise() {
   printf("DXEngine initialised\n");
 }
 
+bool DXEngine::alreadyStacked(long addr) {
+  int numAddresses = addressStack.size();
+
+  for (int i=0; i<numAddresses; i++) {
+    if (addressStack.at(i) == addr) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
 void DXEngine::stackAddress(long addr) {
   if ((addr >= romStart) && (addr <= romEnd)) {
-    addressStack.push_back(addr);
+    if (!alreadyStacked(addr)) {
+      printf("push $%04x\n", addr);
+      addressStack.push_back(addr);
+    }
   }
 }
 
@@ -62,6 +79,38 @@ int DXEngine::fetch8() {
   return mem->getByte(pc++);
 }
 
+int DXEngine::fetch8Rel() {
+  int offset = fetch8();
+
+  return pc+offset;
+}
+
+int DXEngine::fetch8Lab(char *label) {
+  int target = fetch8();
+
+  if (labels->isLabel(target)) {
+    labels->lookupLabel(target, label);
+  }
+  else {
+    snprintf(label, MAXSTR-1, "L_%02x", target);
+  }
+
+  return target;
+}
+
+int DXEngine::fetch8RelLab(char *label) {
+  int target = fetch8Rel();
+
+  if (labels->isLabel(target)) {
+    labels->lookupLabel(target, label);
+  }
+  else {
+    snprintf(label, MAXSTR-1, "L_%02x", target);
+  }
+
+  return target;
+}
+
 int DXEngine::fetch16() {
   long val;
 
@@ -73,6 +122,38 @@ int DXEngine::fetch16() {
   pc += 2;
 
   return val;
+}
+
+int DXEngine::fetch16Rel() {
+  int offset = fetch16();
+
+  return pc+offset;
+}
+
+int DXEngine::fetch16Lab(char *label) {
+  int target = fetch16();
+
+  if (labels->isLabel(target)) {
+    labels->lookupLabel(target, label);
+  }
+  else {
+    snprintf(label, MAXSTR-1, "L_%04x", target);
+  }
+
+  return target;
+}
+
+int DXEngine::fetch16RelLab(char *label) {
+  int target = fetch16Rel();
+
+  if (labels->isLabel(target)) {
+    labels->lookupLabel(target, label);
+  }
+  else {
+    snprintf(label, MAXSTR-1, "L_%04x", target);
+  }
+
+  return target;
 }
 
 int DXEngine::fetch32() {
@@ -88,19 +169,25 @@ int DXEngine::fetch32() {
   return val;
 }
 
-int DXEngine::disassemble(long addr) {
+int DXEngine::disassemble(long addr, OutputItem *out) {
+  return -1;
 }
 
 void DXEngine::disassemble() {
   while (!addressStack.empty()) {
     long addr = addressStack.at(0);
     long nBytes;
+    OutputItem out;
+
+    addressStack.erase(addressStack.begin());
 
     printf("Disassemble from $%04x\n", addr);
-    nBytes = disassemble(addr);
+    nBytes = disassemble(addr, &out);
+    out.render();
     while (nBytes > 0) {
       addr += nBytes;
-      nBytes = disassemble(addr);
+      nBytes = disassemble(addr, &out);
+      out.render();
     }
   }
 }
