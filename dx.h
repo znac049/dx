@@ -21,6 +21,7 @@
 #include "Labels.h"
 #include "OutputItem.h"
 #include "DXEngine.h"
+#include "Engine6502.h"
 #include "EngineX09.h"
 #include "EngineDVG.h"
 

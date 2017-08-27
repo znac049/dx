@@ -11,8 +11,8 @@ void EngineDVG::initialise() {
   int numArgs = args->getArgC(Args::argument);
   const int req = Args::requires_argument;
   const int reqNum = Args::requires_argument | Args::numeric_argument;
-  bool verbose;
   char labFile[MAXSTR];
+  char gameName[MAXSTR];
   char cpuStr[MAXSTR];
 
   if (numArgs != 1) {
@@ -20,17 +20,18 @@ void EngineDVG::initialise() {
   }
 
   parseopt_t mandatoryArgs[] = {
-    {"cpu",        req,    cpuStr, 'c'},
-    {"rom-start",  reqNum, NULL,   'b'}, 
-    {"rom-size",   reqNum, NULL,   's'},
-    {NULL,         0,      NULL,   0}
+    {"cpu",        req,    cpuStr,   'c'},
+    {"rom-start",  reqNum, NULL,     'b'}, 
+    {"rom-size",   reqNum, NULL,     's'},
+    {"game",       req,    gameName, 'g'},
+    {NULL,         0,      NULL,     0}
   }; 
  
   parseopt_t optionalArgs[] = {
-    {"label-file", req, labFile,   'l'},
-    {"help",       0,   NULL,      '?'},
-    {"verbose",    0,   &verbose,  'v'},
-    {NULL,         0,   NULL,      0}
+    {"label-file", req, labFile,     'l'},
+    {"help",       0,   NULL,        '?'},
+    {"verbose",    0,   &verbose,    'v'},
+    {NULL,         0,   NULL,        0}
   };
 
   try {
@@ -39,9 +40,33 @@ void EngineDVG::initialise() {
     if (args->hasArg("label-file")) {
       labels->readFile(labFile);
     }
+
+    printf("Game: %s\n", gameName);
   }
   catch (CommandLineException e) {
     Utils::abortf("Bad command line.\n");
+  }
+
+  for (int i=0; i < NUM_DVG_OPS; i++) {
+    opMap[i] = DVG_OP_NONE;
+  }
+
+  if (strcasecmp(gameName, "asteroids") == 0) {
+    opMap[0x8] = DVG_OP_VLDRAW;
+    opMap[0x9] = DVG_OP_VSCALED_DRAW;
+    opMap[0xa] = DVG_OP_VMOVETO;
+    opMap[0xb] = DVG_OP_HALT;
+    opMap[0xc] = DVG_OP_VJSR;
+    opMap[0xd] = DVG_OP_VRTS;
+    opMap[0xe] = DVG_OP_VJMP;
+    opMap[0xf] = DVG_OP_VSDRAW;
+  }
+  else {
+    Utils::abortf("Unknown game '%s'", gameName);
+  }
+
+  for (int i=0; i < NUM_DVG_OPS; i++) {
+    printf("%01x: %02x\n", i, opMap[i]);
   }
 
   mem->setEndian(true);
@@ -76,84 +101,124 @@ int EngineDVG::disassemble(long addr, OutputItem *out) {
 
   inst = fetch16();
   op = (inst>>12) & 0x0f;
-
-  printf("\n");
+  printf("OP=%d\n", op);
+  op = opMap[op];
+  printf("OP=%d\n", op);
 
   switch (op) {
-  case 0:
-  case 1:
-  case 2:
-  case 3:
-  case 4:
-  case 5:
-  case 6:
-  case 7:
-  case 8:
-  case 9:
+  case DVG_OP_VLDRAW:
     {
       int inst2 = fetch16();
-      int y = (inst & 0x3f);
-      int x = (inst2 & 0x3f);
-      int z = (inst2>>12) & 0x0f;
-      char ysign = (inst & 0x40)?'+':'-';
-      char xsign = (inst & 0x40)?'+':'-';
-      int shift = 9 - op;
+      int y = (inst & 0x0fff);
+      int x = (inst2 & 0x0fff);
+      int intensity = (inst2>>12) & 0x0f;
 
-      printf("%c%c%c%c %c %c %c%c%c%c%c%c%c%c%c%c\n", 
+      printf("%c%c%c%c %c%c%c%c%c%c%c%c%c%c%c%c\n", 
 	     BITCH(15, inst), BITCH(14, inst), BITCH(13, inst), BITCH(12, inst),
 	     BITCH(11, inst), BITCH(10, inst), BITCH(9, inst), BITCH(8, inst),
 	     BITCH(7, inst), BITCH(6, inst), BITCH(5, inst), BITCH(4, inst),
 	     BITCH(3, inst), BITCH(2, inst), BITCH(1, inst), BITCH(0, inst));
 
-      printf("%c%c%c%c %c %c %c%c%c%c%c%c%c%c%c%c\n", 
+      printf("%c%c%c%c %c%c%c%c%c%c%c%c%c%c%c%c\n", 
 	     BITCH(15, inst2), BITCH(14, inst2), BITCH(13, inst2), BITCH(12, inst2),
 	     BITCH(11, inst2), BITCH(10, inst2), BITCH(9, inst2), BITCH(8, inst2),
 	     BITCH(7, inst2), BITCH(6, inst2), BITCH(5, inst2), BITCH(4, inst2),
 	     BITCH(3, inst2), BITCH(2, inst2), BITCH(1, inst2), BITCH(0, inst2));
 
-      out->setInstruction("VCTR%d", op);
-      out->setOperand("%c%d,%c%d,%d", xsign, x, ysign, y, z);
+      out->setInstruction("vldraw");
+      out->setOperand("%d,%d,%d", x, y, intensity);
     }
     break;
 
-  case 0xa:
+  case DVG_OP_VSCALED_DRAW:
     {
       int inst2 = fetch16();
-      int y = (inst & 0x3f);
-      int x = (inst2 & 0x3f);
-      int sf = (inst2>>12) & 0x0f;
-      char ysign = (inst & 0x40)?'+':'-';
-      char xsign = (inst & 0x40)?'+':'-';
-      int shift = 9 - op;
+      int y = (inst & 0x0fff);
+      int x = (inst2 & 0x0fff);
+      int scale = (inst2>>12) & 0x0f;
 
-      printf("%c%c%c%c %c %c %c%c%c%c%c%c%c%c%c%c\n", 
+      printf("%c%c%c%c %c%c%c%c%c%c%c%c%c%c%c%c\n", 
 	     BITCH(15, inst), BITCH(14, inst), BITCH(13, inst), BITCH(12, inst),
 	     BITCH(11, inst), BITCH(10, inst), BITCH(9, inst), BITCH(8, inst),
 	     BITCH(7, inst), BITCH(6, inst), BITCH(5, inst), BITCH(4, inst),
 	     BITCH(3, inst), BITCH(2, inst), BITCH(1, inst), BITCH(0, inst));
 
-      printf("%c%c%c%c %c %c %c%c%c%c%c%c%c%c%c%c\n", 
+      printf("%c%c%c%c %c%c%c%c%c%c%c%c%c%c%c%c\n", 
 	     BITCH(15, inst2), BITCH(14, inst2), BITCH(13, inst2), BITCH(12, inst2),
 	     BITCH(11, inst2), BITCH(10, inst2), BITCH(9, inst2), BITCH(8, inst2),
 	     BITCH(7, inst2), BITCH(6, inst2), BITCH(5, inst2), BITCH(4, inst2),
 	     BITCH(3, inst2), BITCH(2, inst2), BITCH(1, inst2), BITCH(0, inst2));
 
-      out->setInstruction("LABS");
-      out->setOperand("%c%d,%c%d,%d", xsign, x, ysign, y, sf);
+      out->setInstruction("vldraws%d", op);
+      out->setOperand("%d,%d,%d", x, y, scale);
     }
     break;
 
-  case 0xb:
-      printf("%c%c%c%c     %c%c%c%c%c%c%c%c%c%c%c%c\n", 
-	     BITCH(15, inst), BITCH(14, inst), BITCH(13, inst), BITCH(12, inst),
-	     BITCH(11, inst), BITCH(10, inst), BITCH(9, inst), BITCH(8, inst),
-	     BITCH(7, inst), BITCH(6, inst), BITCH(5, inst), BITCH(4, inst),
-	     BITCH(3, inst), BITCH(2, inst), BITCH(1, inst), BITCH(0, inst));
-
+  case DVG_OP_HALT:
+    printf("%c%c%c%c     %c%c%c%c%c%c%c%c%c%c%c%c\n", 
+	   BITCH(15, inst), BITCH(14, inst), BITCH(13, inst), BITCH(12, inst),
+	   BITCH(11, inst), BITCH(10, inst), BITCH(9, inst), BITCH(8, inst),
+	   BITCH(7, inst), BITCH(6, inst), BITCH(5, inst), BITCH(4, inst),
+	   BITCH(3, inst), BITCH(2, inst), BITCH(1, inst), BITCH(0, inst));
+    
     out->setInstruction("HALT");
     break;
 
-  case 0xc:
+  case DVG_OP_VSDRAW:
+    {
+      int y = (inst>>8) & 0x0f;
+      int x = (inst & 0x0f);
+      int intensity = (inst >> 4) & 0x0f;
+
+      printf("%c%c%c%c   %c%c%c%c %c%c%c%c %c%c%c%c\n", 
+	     BITCH(15, inst), BITCH(14, inst), BITCH(13, inst), BITCH(12, inst),
+	     BITCH(11, inst), BITCH(10, inst), BITCH(9, inst), BITCH(8, inst),
+	     BITCH(7, inst), BITCH(6, inst), BITCH(5, inst), BITCH(4, inst),
+	     BITCH(3, inst), BITCH(2, inst), BITCH(1, inst), BITCH(0, inst));
+
+      out->setInstruction("vsdraw");
+    }
+    break;
+
+  case DVG_OP_VSCALE:
+    {
+      int scale = (inst & 0x0fff);
+
+      printf("%c%c%c%c   %c%c%c%c%c%c%c%c%c%c%c%c\n", 
+	     BITCH(15, inst), BITCH(14, inst), BITCH(13, inst), BITCH(12, inst),
+	     BITCH(11, inst), BITCH(10, inst), BITCH(9, inst), BITCH(8, inst),
+	     BITCH(7, inst), BITCH(6, inst), BITCH(5, inst), BITCH(4, inst),
+	     BITCH(3, inst), BITCH(2, inst), BITCH(1, inst), BITCH(0, inst));
+      out->setInstruction("vscale");
+      out->setOperand("%d", scale);
+    }
+    break;
+
+  case DVG_OP_VCOLOR:
+    {
+      int intensity = (inst & 0x00ff);
+      int rgb = (inst>>8) & 0x03;
+
+      printf("%c%c%c%c   %c %c%c%c %c%c%c%c%c%c%c%c\n", 
+	     BITCH(15, inst), BITCH(14, inst), BITCH(13, inst), BITCH(12, inst),
+	     BITCH(11, inst), BITCH(10, inst), BITCH(9, inst), BITCH(8, inst),
+	     BITCH(7, inst), BITCH(6, inst), BITCH(5, inst), BITCH(4, inst),
+	     BITCH(3, inst), BITCH(2, inst), BITCH(1, inst), BITCH(0, inst));
+      out->setInstruction("vcolor");
+      out->setOperand("%d,%d", rgb, intensity);
+    }
+    break;
+
+  case DVG_OP_VCENTER:
+      printf("%c%c%c%c   %c%c%c%c%c%c%c%c%c%c%c%c\n", 
+	     BITCH(15, inst), BITCH(14, inst), BITCH(13, inst), BITCH(12, inst),
+	     BITCH(11, inst), BITCH(10, inst), BITCH(9, inst), BITCH(8, inst),
+	     BITCH(7, inst), BITCH(6, inst), BITCH(5, inst), BITCH(4, inst),
+	     BITCH(3, inst), BITCH(2, inst), BITCH(1, inst), BITCH(0, inst));
+      out->setInstruction("vcenter");
+    break;
+
+  case DVG_OP_VJSR:
     {
       int dest = inst & 0x0fff;
 
@@ -163,22 +228,22 @@ int EngineDVG::disassemble(long addr, OutputItem *out) {
 	     BITCH(7, inst), BITCH(6, inst), BITCH(5, inst), BITCH(4, inst),
 	     BITCH(3, inst), BITCH(2, inst), BITCH(1, inst), BITCH(0, inst));
 
-      out->setInstruction("JSRL");
+      out->setInstruction("vjsr");
       out->setOperand("$%04x", dest);
     }
     break;
 
-  case 0xd:
-      printf("%c%c%c%c     %c%c%c%c%c%c%c%c%c%c%c%c\n", 
-	     BITCH(15, inst), BITCH(14, inst), BITCH(13, inst), BITCH(12, inst),
-	     BITCH(11, inst), BITCH(10, inst), BITCH(9, inst), BITCH(8, inst),
-	     BITCH(7, inst), BITCH(6, inst), BITCH(5, inst), BITCH(4, inst),
-	     BITCH(3, inst), BITCH(2, inst), BITCH(1, inst), BITCH(0, inst));
-
-    out->setInstruction("RTSL");
+  case DVG_OP_VRTS:
+    printf("%c%c%c%c     %c%c%c%c%c%c%c%c%c%c%c%c\n", 
+	   BITCH(15, inst), BITCH(14, inst), BITCH(13, inst), BITCH(12, inst),
+	   BITCH(11, inst), BITCH(10, inst), BITCH(9, inst), BITCH(8, inst),
+	   BITCH(7, inst), BITCH(6, inst), BITCH(5, inst), BITCH(4, inst),
+	   BITCH(3, inst), BITCH(2, inst), BITCH(1, inst), BITCH(0, inst));
+    
+    out->setInstruction("vrts");
     break;
 
-  case 0xe:
+  case DVG_OP_VJMP:
     {
       int dest = inst & 0x0fff;
 
@@ -193,22 +258,31 @@ int EngineDVG::disassemble(long addr, OutputItem *out) {
     }
     break;
 
-  case 0xf:
+  case DVG_OP_VMOVETO:
     {
-      int y = (inst & 0x03);
-      int x = (inst & 0x30);
-      int sf = ((inst>>3) & 1) | ((inst>>10) & 2) ;
-      char ysign = (inst & 0x04)?'+':'-';
-      char xsign = (inst & 0x40)?'+':'-';
+      int inst2 = fetch16();
+      int y = (inst & 0x0fff);
+      int x = (inst2 & 0x0fff);
 
-      printf("%c%c%c%c   %c %c %c%c %c%c%c%c %c %c %c%c\n", 
+      printf("%c%c%c%c %c%c%c%c%c%c%c%c%c%c%c%c\n", 
 	     BITCH(15, inst), BITCH(14, inst), BITCH(13, inst), BITCH(12, inst),
 	     BITCH(11, inst), BITCH(10, inst), BITCH(9, inst), BITCH(8, inst),
 	     BITCH(7, inst), BITCH(6, inst), BITCH(5, inst), BITCH(4, inst),
 	     BITCH(3, inst), BITCH(2, inst), BITCH(1, inst), BITCH(0, inst));
 
-      out->setInstruction("SVEC");
+      printf("%c%c%c%c %c%c%c%c%c%c%c%c%c%c%c%c\n", 
+	     BITCH(15, inst2), BITCH(14, inst2), BITCH(13, inst2), BITCH(12, inst2),
+	     BITCH(11, inst2), BITCH(10, inst2), BITCH(9, inst2), BITCH(8, inst2),
+	     BITCH(7, inst2), BITCH(6, inst2), BITCH(5, inst2), BITCH(4, inst2),
+	     BITCH(3, inst2), BITCH(2, inst2), BITCH(1, inst2), BITCH(0, inst2));
+
+      out->setInstruction("vmove");
+      out->setOperand("%d,%d", x, y);
     }
+    break;
+
+  default:
+    out->setInstruction("???");
     break;
   }
 

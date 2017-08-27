@@ -1300,7 +1300,7 @@ void EngineX09::initialise() {
 
   mem->setType(SWI3Vec, Memory::WORD, 7);
 
-  printf("6809 engine ready.\n");
+  printf("6x09 engine ready.\n");
 }
 
 bool EngineX09::disassembleReglist(OutputItem *out, EngineX09::Opcode *opcode) {

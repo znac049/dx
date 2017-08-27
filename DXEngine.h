@@ -13,6 +13,8 @@ class DXEngine {
   Labels *labels;
   vector<long> addressStack;
 
+  bool verbose;
+
  public:
 
  private:

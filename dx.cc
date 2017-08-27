@@ -255,6 +255,9 @@ int main(int argc, char *argv[]) {
     if (strcmp(cpuStr, "6809") == 0) {
       engine = (DXEngine *)new EngineX09(&args, romStart, romEnd, arg->option);
     }
+    else if (strcmp(cpuStr, "6502") == 0) {
+      engine = (DXEngine *)new Engine6502(&args, romStart, romEnd, arg->option);
+    }
     else if (strcmp(cpuStr, "dvg") == 0) {
       engine = (DXEngine *)new EngineDVG(&args, romStart, romEnd, arg->option);
     }

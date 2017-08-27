@@ -1,6 +1,7 @@
 SRC = dx.cc \
 	Args.cc \
 	DXEngine.cc \
+	Engine6502.cc \
 	EngineX09.cc \
 	EngineDVG.cc \
 	Label.cc \
@@ -34,9 +35,6 @@ all: $(EXE)
 
 $(EXE): ${OBJ}
 	${LD} -o $(EXE) ${OBJ} ${LDFLAGS}
-
-proto: clean
-	cproto *.c >proto.h
 
 clean:
 	rm -f *.o *~ \#* $(EXE)

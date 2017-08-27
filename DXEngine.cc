@@ -10,13 +10,13 @@ static parseopt_t mandatoryArgs[] = {
   {"cpu",        Args::requires_argument,                 cpuStr, 'c'},
   {"rom-start",  Args::requires_argument | Args::numeric_argument, &romStart, 'b'}, 
   {"rom-size",   Args::requires_argument | Args::numeric_argument, &romSize, 's'},
-  {NULL,         0,                                       NULL, 0}
+  {NULL,         0,                                       NULL,    0}
 }; 
  
 static parseopt_t optionalArgs[] = {
-  {"help",        0,                                      NULL,  '?' },
-  {"verbose",     0,                                      NULL,  'v' },
-  {NULL,          0,                                      NULL,  0   }
+  {"help",        0,                                      NULL,     '?' },
+  {"verbose",     Args::requires_argument | Args::boolean_argument, verbose,  'v' },
+  {NULL,          0,                                      NULL,     0}
 };
 #endif
 
@@ -119,6 +119,11 @@ int DXEngine::fetch16() {
   }
   
   val = mem->getWord(pc);
+
+  if (args->hasArg("verbose")) {
+    printf("fetch16 @%04x=%02lx\n", pc, val);
+  }
+
   pc += 2;
 
   return val;
