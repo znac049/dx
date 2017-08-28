@@ -213,7 +213,7 @@ void generate_listing() {
     dump_labels();
   }
 }
-#endif
+#endif 
 
 int main(int argc, char *argv[]) {
   Args args(argc, argv);
@@ -235,10 +235,12 @@ int main(int argc, char *argv[]) {
  
   parseopt_t optionalArgs[] = {
     {"address-mask",  Args::requires_argument | Args::numeric_argument, &addressMask, 'm'}, 
-    {"help",          0, &verbose,  '?' },
-    {"verbose",       0, NULL,      'v' },
-    {NULL,            0, NULL,      0   }
+    {"help",          0, NULL,     0 },
+    {"verbose",       0, &verbose, 'v' },
+    {NULL,            0, NULL,     0   }
   };
+
+  printf("&cpuStr=0x%08x\n", cpuStr);
 
   try {
     DXEngine *engine = NULL;
@@ -254,25 +256,22 @@ int main(int argc, char *argv[]) {
 
     arg = args.getArg(0, Args::argument);
 
+    printf("CPU='%s'\n", cpuStr);
     if ((strcmp(cpuStr, "6809") == 0) || (strcmp(cpuStr, "6309") == 0) || (strcasecmp(cpuStr, "6x09") == 0)) {
-      printf("6x09\n");
       engine = (DXEngine *)new EngineX09(&args, romStart, romEnd, arg->option);
     }
     else if (strcmp(cpuStr, "6502") == 0) {
-      printf("6502\n");
       engine = (DXEngine *)new Engine6502(&args, romStart, romEnd, arg->option);
     }
     else if (strcmp(cpuStr, "dvg") == 0) {
-      printf("DVG\n");
       engine = (DXEngine *)new EngineDVG(&args, romStart, romEnd, arg->option);
     }
     else {
-      printf("???\n");
+      printf("????????\n");
     }
 
-    printf("On your marks...\n");
-
     if (engine != NULL) {
+      engine->setAddressMask(addressMask);
       engine->initialise();
       engine->disassemble();
     }

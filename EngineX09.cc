@@ -1265,8 +1265,6 @@ void EngineX09::initialise() {
   char labFile[MAXSTR];
   char cpuStr[MAXSTR];
 
-  printf("initialise - 6x09\n");
-
   if (numArgs != 1) {
     Utils::abortf("Just one rom file expected\n");
   }

@@ -321,8 +321,6 @@ void Engine6502::initialise() {
   char labFile[MAXSTR];
   char cpuStr[MAXSTR];
 
-  printf("Initialise - 6502\n");
-
   if (numArgs != 1) {
     Utils::abortf("Just one rom file expected\n");
   }

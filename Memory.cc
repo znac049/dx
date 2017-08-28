@@ -29,6 +29,10 @@ void Memory::setAddressMask(long mask) {
   printf("Address mask: 0x%04x\n", mask);
 }
 
+long Memory::maskAddress(long addr) {
+  return addr & addressMask;
+}
+
 bool Memory::isValidAddress(long addr) {
   return ((addr >= 0) && (addr < memorySize));
 }
@@ -42,6 +46,7 @@ void Memory::assertAddressValid(long addr) {
 long Memory::readFile(const char *fileName, long addr) {
   FILE *fd = fopen(fileName, "rb");
   int nBytes = 0;
+  long start = addr;
 
   printf("Read file '%s' into memory at $%04x\n", fileName, addr);
 
@@ -64,7 +69,8 @@ long Memory::readFile(const char *fileName, long addr) {
 
   fclose(fd);
 
-  printf("%d bytes read\n", nBytes);
+  printf("%d bytes read into $%04x-$%04x\n", nBytes, start, addr-1);
+  printf("         masked to $%04x-$%04x\n", nBytes, maskAddress(start), maskAddress(addr-1));
 
   return nBytes;
 }

@@ -53,6 +53,8 @@ void DXEngine::readVector(long addr, const char *vecName) {
   long vector = mem->getWord(addr);
   char name[MAXSTR];
 
+  printf("Get %s vector: $%04x\n", vecName, vector);
+
   if ((vector >= romStart) && (vector <= romEnd)) {
     stackAddress(vector);
     snprintf(name, MAXSTR-1, "%s_Handler", vecName);

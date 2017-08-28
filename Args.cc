@@ -16,6 +16,8 @@ Args::Args(int argc, char **argv) {
     shortName = ++slash;
   }
 
+  //printf("Args().\n  short='%s'\n  long='%s'\n", shortName, longName);
+
   while (i < argc) {
     char *argStr = argv[i];
 
@@ -26,7 +28,7 @@ Args::Args(int argc, char **argv) {
       char *eq;
       int flags = 0;
 
-      //printf(" long\n");
+      //printf(" long opt\n");
       
       opt = new option_t();
       strcpy(arg, argv[i]);
@@ -57,7 +59,7 @@ Args::Args(int argc, char **argv) {
       int len = strlen(argStr);
       char tmp[2];
       
-      //printf(" short\n");
+      //printf(" short opt\n");
 
       tmp[1] = EOS;
 
@@ -201,16 +203,18 @@ bool Args::hasArg(const char *arg, int argType) {
 int Args::argIndex(const char *arg, int argType) {
   option_t *opt;
 
-  //printf("argIndex('%s', %d)\n", arg, argType);
+  //printf("argIndex('%s', %d) -> ", arg, argType);
 
   for (int i=0; i<options.size(); i++) {
     opt = options.at(i);
 
     if ((opt->optType == argType) && (strcmp(opt->option, arg) == 0)) {
+      //printf("%d\n", i);
       return i;
     }
   }
 
+  //printf("-1\n");
   return -1;
 }
 
@@ -302,7 +306,8 @@ void Args::processArgs(parseopt_t *opts) {
       }
       else {
 	//printf("String '%s'\n", arg->valStr);
-	if (opt->target != NULL) {
+	//printf(" target=0x%08x\n", opt->target);
+	if (arg->valStr && (opt->target != NULL)) {
 	  char *cp = (char *)opt->target;
 	  strcpy(cp, arg->valStr);
 	}
@@ -315,6 +320,8 @@ void Args::processArgs(parseopt_t *opts) {
 
 void Args::parseArgs(parseopt_t *mandatory, parseopt_t *optional, bool fussy) {
   parseopt_t *opt = mandatory;
+
+  //printf("parseArgs()\n");
 
   // Deal with any short args that must have an argument
   associateShortArgs(mandatory);
@@ -338,7 +345,9 @@ void Args::parseArgs(parseopt_t *mandatory, parseopt_t *optional, bool fussy) {
 
   // All mandatory args are present
 
+  //printf("Process mandatory\n");
   processArgs(mandatory);
+  //printf("Process optional\n");
   processArgs(optional);
 }
 
@@ -371,7 +380,7 @@ option_t *Args::getArg(int argNum, int argType) {
   int numArgs = options.size();
   int hits = -1;
 
-  printf("getArg(%d, %d)\n");
+  //printf("getArg(%d, %d)\n");
   dump();
 
   for (int i=0; i<numArgs; i++) {
@@ -379,7 +388,7 @@ option_t *Args::getArg(int argNum, int argType) {
       hits++;
 
       if (hits == argNum) {
-	printf("Found at %d\n", i);
+	//printf("Found at %d\n", i);
 	return options.at(i);
       }
     }

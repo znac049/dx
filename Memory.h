@@ -32,6 +32,7 @@ class Memory {
   void setWord(long addr, int val);
   int getDword(long addr);
   void setDword(long addr, int val);
+  long maskAddress(long addr);
 
   int setType(long addr, int type, int count);
 };
