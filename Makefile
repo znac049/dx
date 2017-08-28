@@ -19,7 +19,7 @@ EXE = dx
 CC = g++
 LD = g++
 
-CFLAGS = -O2 -UH6309 -Wno-format
+CFLAGS = -UH6309 -Wno-format -g -O0
 LDFLAGS =
 
 BINDIR = $(DESTDIR)/bin
@@ -37,4 +37,4 @@ $(EXE): ${OBJ}
 	${LD} -o $(EXE) ${OBJ} ${LDFLAGS}
 
 clean:
-	rm -f *.o *~ \#* $(EXE)
+	rm -f *.o *~ \#* $(EXE) core

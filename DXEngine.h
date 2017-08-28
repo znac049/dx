@@ -21,9 +21,12 @@ class DXEngine {
  protected:
  public:
   DXEngine(Args *args, long beg, long end, const char *file);
+  DXEngine();
 
   virtual void initialise();
+  virtual void usage();
 
+  void setAddressMask(long mask);
   int fetch8();
   int fetch8Rel();
   int fetch8Lab(char *label);

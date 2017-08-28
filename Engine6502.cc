@@ -307,6 +307,12 @@ struct Engine6502::Opcode Engine6502::codes[] = {
   {_undoc, _illegal}
 };
 
+void Engine6502::usage() {
+  printf("CPU == '6502'\n");
+  printf("  --label-file=<label file>\n");
+  printf("\n");
+}
+
 void Engine6502::initialise() {
   int numArgs = args->getArgC(Args::argument);
   const int req = Args::requires_argument;
@@ -314,6 +320,8 @@ void Engine6502::initialise() {
   bool verbose;
   char labFile[MAXSTR];
   char cpuStr[MAXSTR];
+
+  printf("Initialise - 6502\n");
 
   if (numArgs != 1) {
     Utils::abortf("Just one rom file expected\n");
@@ -389,6 +397,8 @@ int Engine6502::disassemble(long addr, OutputItem *out) {
   char label[MAXSTR];
   long target;
   char regName;
+
+  printf("Disassemble - 6502\n");
 
   out->clear();
   out->setAddress(addr);

@@ -1251,6 +1251,12 @@ const char *EngineX09::off4[] = {
   "-8", "-7", "-6", "-5", "-4", "-3", "-2", "-1"
 };
 
+void EngineX09::usage() {
+  printf("CPU == '6809' | '6309' | '6x09'\n");
+  printf("  --label-file=<label file>\n");
+  printf("\n");
+}
+
 void EngineX09::initialise() {
   int numArgs = args->getArgC(Args::argument);
   const int req = Args::requires_argument;
@@ -1258,6 +1264,8 @@ void EngineX09::initialise() {
   bool verbose;
   char labFile[MAXSTR];
   char cpuStr[MAXSTR];
+
+  printf("initialise - 6x09\n");
 
   if (numArgs != 1) {
     Utils::abortf("Just one rom file expected\n");

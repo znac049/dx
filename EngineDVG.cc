@@ -7,6 +7,13 @@
 
 #define BITCH(n, val) (((1<<n)&val)?'1':'0')
 
+void EngineDVG::usage() {
+  printf("CPU == 'dvg'\n");
+  printf("  --game=<game name> (mandatory)\n");
+  printf("  --label-file=<label file>\n");
+  printf("\n");
+}
+
 void EngineDVG::initialise() {
   int numArgs = args->getArgC(Args::argument);
   const int req = Args::requires_argument;
@@ -14,6 +21,8 @@ void EngineDVG::initialise() {
   char labFile[MAXSTR];
   char gameName[MAXSTR];
   char cpuStr[MAXSTR];
+
+  printf("initialise - 6x09\n");
 
   if (numArgs != 1) {
     Utils::abortf("Just one rom file expected\n");

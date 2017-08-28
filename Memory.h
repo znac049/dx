@@ -7,6 +7,7 @@ class Memory {
  private:
   std::vector<MemoryCell *> memory;
   long memorySize;
+  long addressMask;
   bool bigEndian;
 
  protected:
@@ -23,6 +24,7 @@ class Memory {
   long readFile(const char *file_name, long addr);
 
   void setEndian(bool big);
+  void setAddressMask(long mask);
   bool isValidAddress(long addr);
   int getByte(long addr);
   void setByte(long addr, int val);

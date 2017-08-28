@@ -28,8 +28,10 @@ class EngineDVG : DXEngine {
  private:
  protected:
  public:
+ EngineDVG() : DXEngine() {};
  EngineDVG(Args *args, long beg, long end, const char *file) : DXEngine(args, beg, end, file) {};
   virtual void initialise();
+  virtual void usage();
 
   virtual int disassemble(long addr, OutputItem *out);
 };

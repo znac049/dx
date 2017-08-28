@@ -5,20 +5,8 @@
 
 #include "dx.h"
 
-#if 0
-static parseopt_t mandatoryArgs[] = {
-  {"cpu",        Args::requires_argument,                 cpuStr, 'c'},
-  {"rom-start",  Args::requires_argument | Args::numeric_argument, &romStart, 'b'}, 
-  {"rom-size",   Args::requires_argument | Args::numeric_argument, &romSize, 's'},
-  {NULL,         0,                                       NULL,    0}
-}; 
- 
-static parseopt_t optionalArgs[] = {
-  {"help",        0,                                      NULL,     '?' },
-  {"verbose",     Args::requires_argument | Args::boolean_argument, verbose,  'v' },
-  {NULL,          0,                                      NULL,     0}
-};
-#endif
+DXEngine::DXEngine() {
+}
 
 DXEngine::DXEngine(Args *arguments, long beg, long end, const char *romFile) {
   args = arguments;
@@ -34,6 +22,10 @@ DXEngine::DXEngine(Args *arguments, long beg, long end, const char *romFile) {
 
 void DXEngine::initialise() {
   printf("DXEngine initialised\n");
+}
+
+void DXEngine::setAddressMask(long mask) {
+  mem->setAddressMask(mask);
 }
 
 bool DXEngine::alreadyStacked(long addr) {
@@ -197,3 +189,5 @@ void DXEngine::disassemble() {
   }
 }
 
+void DXEngine::usage() {
+}

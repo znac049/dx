@@ -23,6 +23,12 @@ void Memory::setEndian(bool big) {
   bigEndian = big;
 }
 
+void Memory::setAddressMask(long mask) {
+  addressMask = mask;
+
+  printf("Address mask: 0x%04x\n", mask);
+}
+
 bool Memory::isValidAddress(long addr) {
   return ((addr >= 0) && (addr < memorySize));
 }
@@ -48,7 +54,8 @@ long Memory::readFile(const char *fileName, long addr) {
 
     if (c != EOF) {
       if (isValidAddress(addr)) {
-	memory[addr++]->set(c);
+	memory[addr & addressMask]->set(c);
+	addr++;
       }
 
       nBytes++;
@@ -65,20 +72,20 @@ long Memory::readFile(const char *fileName, long addr) {
 int Memory::getByte(long addr) {
   assertAddressValid(addr);
 
-  return memory[addr]->get();
+  return memory[addr & addressMask]->get();
 }
 
 void Memory::setByte(long addr, int b) {
   assertAddressValid(addr);
 
-  memory[addr]->set(b);
+  memory[addr & addressMask]->set(b);
 }
 
 int Memory::getWord(long addr) {
   int b1, b2;
 
-  b1 = memory[addr]->get();
-  b2 = memory[addr+1]->get();
+  b1 = memory[addr & addressMask]->get();
+  b2 = memory[(addr+1) & addressMask]->get();
 
   return bigEndian ? ((b1<<8) | b2) : ((b2<<8) | b1);
 }
@@ -86,10 +93,10 @@ int Memory::getWord(long addr) {
 int Memory::getDword(long addr) {
   dword_t low, lowish, highish, high;
 
-  low     = memory[addr+3]->get();
-  lowish  = memory[addr+2]->get();
-  highish = memory[addr+1]->get();
-  high    = memory[addr]->get();
+  low     = memory[(addr+3) & addressMask]->get();
+  lowish  = memory[(addr+2) & addressMask]->get();
+  highish = memory[(addr+1) & addressMask]->get();
+  high    = memory[addr & addressMask]->get();
 
   return low | (lowish << 8) | (highish << 16) | (high << 24);
 }
@@ -104,7 +111,7 @@ int Memory::setType(long addr, int type, int count) {
   count = count * size;
   for (int i=0; i<count; i++) {
     if (isValidAddress(addr+i)) {
-      memory[addr+i]->setType(type);
+      memory[(addr+i) & addressMask]->setType(type);
     }
   }
 

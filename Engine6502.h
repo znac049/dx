@@ -45,8 +45,10 @@ class Engine6502 : DXEngine {
  private:
  protected:
  public:
+ Engine6502() : DXEngine() {};
  Engine6502(Args *args, long beg, long end, const char *file) : DXEngine(args, beg, end, file) {};
   virtual void initialise();
+  virtual void usage();
 
   int disassembleAsBytes(OutputItem *out, long addr, int count);
 

@@ -224,6 +224,7 @@ int main(int argc, char *argv[]) {
   long romSize = 0;
   long romEnd = 0xffff;
   bool verbose = false;
+  long addressMask = 0xffff;
 
   parseopt_t mandatoryArgs[] = {
     {"cpu",        Args::requires_argument,                          cpuStr, 'c'},
@@ -233,9 +234,10 @@ int main(int argc, char *argv[]) {
   }; 
  
   parseopt_t optionalArgs[] = {
-    {"help",     0, &verbose,  '?' },
-    {"verbose",  0, NULL,      'v' },
-    {NULL,       0, NULL,      0   }
+    {"address-mask",  Args::requires_argument | Args::numeric_argument, &addressMask, 'm'}, 
+    {"help",          0, &verbose,  '?' },
+    {"verbose",       0, NULL,      'v' },
+    {NULL,            0, NULL,      0   }
   };
 
   try {
@@ -252,15 +254,23 @@ int main(int argc, char *argv[]) {
 
     arg = args.getArg(0, Args::argument);
 
-    if (strcmp(cpuStr, "6809") == 0) {
+    if ((strcmp(cpuStr, "6809") == 0) || (strcmp(cpuStr, "6309") == 0) || (strcasecmp(cpuStr, "6x09") == 0)) {
+      printf("6x09\n");
       engine = (DXEngine *)new EngineX09(&args, romStart, romEnd, arg->option);
     }
     else if (strcmp(cpuStr, "6502") == 0) {
+      printf("6502\n");
       engine = (DXEngine *)new Engine6502(&args, romStart, romEnd, arg->option);
     }
     else if (strcmp(cpuStr, "dvg") == 0) {
+      printf("DVG\n");
       engine = (DXEngine *)new EngineDVG(&args, romStart, romEnd, arg->option);
     }
+    else {
+      printf("???\n");
+    }
+
+    printf("On your marks...\n");
 
     if (engine != NULL) {
       engine->initialise();
@@ -268,7 +278,27 @@ int main(int argc, char *argv[]) {
     }
   }
   catch (exception e) {
-    printf("Trouble parsing command line.\n");
+    printf("Usage: dx <options> <file>\n\n");
+    printf("Required options:\n");
+    printf("  --cpu=<CPU string>\n");
+    printf("  --rom-start=<address>\n");
+    printf("  --rom-size=<size in bytes>\n");
+    printf("  --address-mask=<mask>\n");
+
+    printf("\nOptional options:\n");
+    printf("  --verbose\n");
+    printf("  --help\n");
+
+    printf("\nCPU specific options:\n");
+
+    EngineX09 *x09 = new EngineX09();
+    x09->usage();
+
+    Engine6502 *eng  = new Engine6502();
+    eng->usage();
+
+    EngineDVG *dvg = new EngineDVG();
+    dvg->usage();
   }
 
   return 0;
