@@ -29,7 +29,7 @@ class EngineDVG : DXEngine {
  protected:
  public:
  EngineDVG() : DXEngine() {};
- EngineDVG(Args *args, long beg, long end, const char *file) : DXEngine(args, beg, end, file) {};
+ EngineDVG(Args *args, long beg, long end, long mask, const char *file) : DXEngine(args, beg, end, mask, file) {};
   virtual void initialise();
   virtual void usage();
 

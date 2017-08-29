@@ -75,7 +75,7 @@ class EngineX09 : DXEngine {
  protected:
  public:
  EngineX09() : DXEngine() {};
- EngineX09(Args *args, long beg, long end, const char *file) : DXEngine(args, beg, end, file) {};
+ EngineX09(Args *args, long beg, long end, long mask, const char *file) : DXEngine(args, beg, end, mask, file) {};
   virtual void initialise();
   virtual void usage();
 

@@ -46,7 +46,7 @@ class Engine6502 : DXEngine {
  protected:
  public:
  Engine6502() : DXEngine() {};
- Engine6502(Args *args, long beg, long end, const char *file) : DXEngine(args, beg, end, file) {};
+ Engine6502(Args *args, long beg, long end, long mask, const char *file) : DXEngine(args, beg, end, mask, file) {};
   virtual void initialise();
   virtual void usage();
 

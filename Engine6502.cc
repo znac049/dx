@@ -396,7 +396,7 @@ int Engine6502::disassemble(long addr, OutputItem *out) {
   long target;
   char regName;
 
-  printf("Disassemble - 6502\n");
+  pc = addr = mem->maskAddress(addr);
 
   out->clear();
   out->setAddress(addr);
@@ -411,10 +411,12 @@ int Engine6502::disassemble(long addr, OutputItem *out) {
 
   inst = fetch8();
   opcode = &(codes[inst]);
+  printf("inst=0x%02x, opcode=%d\n", inst, opcode);
 
   instruction = opcode->code;
 
-  if (instruction == _illegal) {
+  if (instruction == _undoc) {
+    printf("Illegal!\n");
     return -disassembleAsBytes(out, addr, pc - addr);
   }
 

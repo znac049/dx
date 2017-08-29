@@ -70,7 +70,7 @@ long Memory::readFile(const char *fileName, long addr) {
   fclose(fd);
 
   printf("%d bytes read into $%04x-$%04x\n", nBytes, start, addr-1);
-  printf("         masked to $%04x-$%04x\n", nBytes, maskAddress(start), maskAddress(addr-1));
+  printf("         masked to $%04x-$%04x\n", maskAddress(start), maskAddress(addr-1));
 
   return nBytes;
 }

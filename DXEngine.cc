@@ -8,13 +8,14 @@
 DXEngine::DXEngine() {
 }
 
-DXEngine::DXEngine(Args *arguments, long beg, long end, const char *romFile) {
+DXEngine::DXEngine(Args *arguments, long beg, long end, long mask, const char *romFile) {
   args = arguments;
 
   romStart = beg;
   romEnd = end;
 
   mem = new Memory(0x10000);
+  mem->setAddressMask(mask);
   mem->readFile(romFile, romStart);
 
   labels = new Labels(romStart, romEnd);
@@ -22,10 +23,6 @@ DXEngine::DXEngine(Args *arguments, long beg, long end, const char *romFile) {
 
 void DXEngine::initialise() {
   printf("DXEngine initialised\n");
-}
-
-void DXEngine::setAddressMask(long mask) {
-  mem->setAddressMask(mask);
 }
 
 bool DXEngine::alreadyStacked(long addr) {

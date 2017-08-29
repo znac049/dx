@@ -258,20 +258,19 @@ int main(int argc, char *argv[]) {
 
     printf("CPU='%s'\n", cpuStr);
     if ((strcmp(cpuStr, "6809") == 0) || (strcmp(cpuStr, "6309") == 0) || (strcasecmp(cpuStr, "6x09") == 0)) {
-      engine = (DXEngine *)new EngineX09(&args, romStart, romEnd, arg->option);
+      engine = (DXEngine *)new EngineX09(&args, romStart, romEnd, addressMask, arg->option);
     }
     else if (strcmp(cpuStr, "6502") == 0) {
-      engine = (DXEngine *)new Engine6502(&args, romStart, romEnd, arg->option);
+      engine = (DXEngine *)new Engine6502(&args, romStart, romEnd, addressMask, arg->option);
     }
     else if (strcmp(cpuStr, "dvg") == 0) {
-      engine = (DXEngine *)new EngineDVG(&args, romStart, romEnd, arg->option);
+      engine = (DXEngine *)new EngineDVG(&args, romStart, romEnd, addressMask, arg->option);
     }
     else {
       printf("????????\n");
     }
 
     if (engine != NULL) {
-      engine->setAddressMask(addressMask);
       engine->initialise();
       engine->disassemble();
     }
