@@ -381,7 +381,7 @@ option_t *Args::getArg(int argNum, int argType) {
   int hits = -1;
 
   //printf("getArg(%d, %d)\n");
-  dump();
+  //dump();
 
   for (int i=0; i<numArgs; i++) {
     if (options.at(i)->optType == argType) {

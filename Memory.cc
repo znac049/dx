@@ -10,7 +10,7 @@ Memory::Memory(long mSize) {
   memory.clear();
   memory.reserve(memorySize);
 
-  printf("Memory size=%d\n", memorySize);
+  //printf("Memory size=%d\n", memorySize);
 
   for (int i=0; i<memorySize; i++) {
     memory[i] = new MemoryCell();
@@ -58,8 +58,6 @@ void Memory::setEndian(bool big) {
 
 void Memory::setAddressMask(long mask) {
   addressMask = mask;
-
-  printf("Address mask: 0x%04x\n", mask);
 }
 
 long Memory::maskAddress(long addr) {
@@ -81,7 +79,7 @@ long Memory::readFile(const char *fileName, long addr) {
   int nBytes = 0;
   long start = addr;
 
-  printf("Read file '%s' into memory at $%04x\n", fileName, addr);
+  //printf("Read file '%s' into memory at $%04x\n", fileName, addr);
 
   if (!fd) {
     return NO;
@@ -103,8 +101,8 @@ long Memory::readFile(const char *fileName, long addr) {
 
   fclose(fd);
 
-  printf("%d bytes read into $%04x-$%04x\n", nBytes, start, addr-1);
-  printf("         masked to $%04x-$%04x\n", maskAddress(start), maskAddress(addr-1));
+  //printf("%d bytes read into $%04x-$%04x\n", nBytes, start, addr-1);
+  //printf("         masked to $%04x-$%04x\n", maskAddress(start), maskAddress(addr-1));
 
   return nBytes;
 }
@@ -151,7 +149,6 @@ int Memory::setType(long addr, int type, int count) {
   count = count * size;
   for (int i=0; i<count; i++) {
     if (isValidAddress(addr+i)) {
-      printf(" %04x", maskAddress(addr+i));
       memory[maskAddress(addr+i)]->setType(type);
     }
   }

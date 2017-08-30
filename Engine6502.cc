@@ -358,8 +358,6 @@ void Engine6502::initialise() {
   readVector(IRQVec,   "IRQ");
 
   mem->setType(IRQVec, Memory::WORD, 3);
-
-  printf("6502 engine ready.\n");
 }
 
 int Engine6502::disassembleAsBytes(OutputItem *out, long addr, int count) {
@@ -397,7 +395,7 @@ int Engine6502::disassemble(long addr, OutputItem *out) {
   long target;
   char regName;
 
-  printf("in 6502 disassemble\n");
+  //printf("in 6502 disassemble\n");
   pc = addr = mem->maskAddress(addr);
 
   out->clear();
@@ -427,33 +425,103 @@ int Engine6502::disassemble(long addr, OutputItem *out) {
   out->setInstruction(mne[instruction]);
 
   switch (opcode->mode) {
+  case _immed:
+    out->setOperand("#$%02x", fetch8());
+    break;
+
+  case _abs:
+    target = fetch16Lab(label);
+    out->setOperand("%s", label);
+
+    if ((instruction == _jsr) || (instruction == _jmp)) {
+      stackAddress(target);
+      labels->createLabel(NULL, target);
+
+      if (instruction == _jmp) {
+	return -mem->setType(addr, Memory::CODE, pc-addr);
+      }
+    }
+    break;
+
+  case _absx:
+    target = fetch16Lab(label);
+    out->setOperand("%s,X", label);
+    break;
+
+  case _absy:
+    target = fetch16Lab(label);
+    out->setOperand("%s,Y", label);
+    break;
+
+  case _accum:
+    out->setOperand("A");
+    break;
+
+  case _zpg:
+    target = fetch8Lab(label);
+    out->setOperand("%s", label);
+    break;
+
+  case _zpgx:
+    target = fetch8Lab(label);
+    out->setOperand("%s,X", label);
+    break;
+
+  case _zpgy:
+    target = fetch8Lab(label);
+    out->setOperand("%s,Y", label);
+    break;
+
+  case _rel:
+    {
+      long offset = fetch8();
+      long rel = offset & 0x7f;
+      char dir = (offset & 0x80)?'-':'+';
+
+      if (offset & 0x80) {
+	rel++;
+	target = pc - rel;
+      }
+      else {
+	target = pc + rel;
+      }
+
+      //printf("PC=%04x, Offset=%08x (%d), rel=%c%d, target=%04x\n", pc, offset, offset, dir, rel, target);
+
+      if (labels->isLabel(target)) {
+	labels->lookupLabel(target, label);
+      }
+      else {
+	snprintf(label, MAXSTR-1, "L_%04x", target);
+      }
+
+      out->setOperand("%s", label);
+    }
+    break;
+
+  case _ind:
+    target = fetch16Lab(label);
+    out->setOperand("(%s)", label);
+    break;
+
+  case _xind:
+    printf("NOT IMPLEMENTED!\n");
+    break;
+
+  case _indy:
+    printf("NOT IMPLEMENTED!\n");
+    break;
+
   case _impl:
     // Special cases: RTS and RTI
     if ((instruction == _rts) || (instruction == _rti)) {
       return -mem->setType(addr, Memory::CODE, pc-addr);
     }
     break;
-
-  case _immed:
-    printf("Immediate\n");
-    out->setOperand("#$%02x", fetch8());
-    break;
-
-  case _abs:
-    target = fetch8Lab(label);
-
-    if ((instruction == _jsr) || (instruction == _jmp)) {
-      stackAddress(target);
-      labels->createLabel(NULL, target);
-    }
-
-    out->setOperand("<%s", label);
-    break;
-
   }
 
   out->setType(Memory::CODE);
-  printf("addr=%04x, pc=%04x, delta=%d\n", addr, pc, pc-addr);
+  //printf("addr=%04x, pc=%04x, delta=%d\n", addr, pc, pc-addr);
   return mem->setType(addr, Memory::CODE, pc-addr);
 }
 

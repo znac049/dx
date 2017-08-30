@@ -40,7 +40,7 @@ bool DXEngine::alreadyStacked(long addr) {
 void DXEngine::stackAddress(long addr) {
   if ((addr >= romStart) && (addr <= romEnd)) {
     if (!alreadyStacked(addr)) {
-      printf("push $%04x\n", addr);
+      //printf("push $%04x\n", addr);
       addressStack.push_back(addr);
     }
   }
@@ -50,7 +50,7 @@ void DXEngine::readVector(long addr, const char *vecName) {
   long vector = mem->getWord(addr);
   char name[MAXSTR];
 
-  printf("Get %s vector: $%04x\n", vecName, vector);
+  //printf("Get %s vector: $%04x\n", vecName, vector);
 
   if ((vector >= romStart) && (vector <= romEnd)) {
     stackAddress(vector);
@@ -178,7 +178,7 @@ void DXEngine::disassemble() {
 
     addressStack.erase(addressStack.begin());
 
-    printf("Disassemble from $%04x\n", addr);
+    //printf("Disassemble from $%04x\n", addr);
     nBytes = disassemble(addr, &out);
     out.render();
     while (nBytes > 0) {

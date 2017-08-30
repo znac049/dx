@@ -24,6 +24,8 @@ void OutputItem::clear() {
 }
 
 void OutputItem::render() {
+  //printf("Render:\n");
+
   switch (type) {
   case Memory::BYTE:
     printf("BYTE!!!!\n");
@@ -35,6 +37,10 @@ void OutputItem::render() {
 
   case Memory::CODE:
     printf("%04X     %-8s %s\n", startAddress, instruction, operand); 
+    break;
+
+  default:
+    printf("Wah!\n");
     break;
   }
 }

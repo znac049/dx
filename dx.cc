@@ -240,8 +240,6 @@ int main(int argc, char *argv[]) {
     {NULL,            0, NULL,     0   }
   };
 
-  printf("&cpuStr=0x%08x\n", cpuStr);
-
   try {
     DXEngine *engine = NULL;
     int numArgs;
@@ -256,7 +254,6 @@ int main(int argc, char *argv[]) {
 
     arg = args.getArg(0, Args::argument);
 
-    printf("CPU='%s'\n", cpuStr);
     if ((strcmp(cpuStr, "6809") == 0) || (strcmp(cpuStr, "6309") == 0) || (strcasecmp(cpuStr, "6x09") == 0)) {
       engine = (DXEngine *)new EngineX09(&args, romStart, romEnd, addressMask, arg->option);
     }
