@@ -42,6 +42,8 @@ class DXEngine {
 
   void disassemble();
   virtual int disassemble(long addr, OutputItem *out);
+
+  void dump();
 };
 
 #endif

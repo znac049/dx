@@ -166,6 +166,7 @@ int DXEngine::fetch32() {
 }
 
 int DXEngine::disassemble(long addr, OutputItem *out) {
+  printf("Bang!\n");
   return -1;
 }
 
@@ -189,4 +190,8 @@ void DXEngine::disassemble() {
 }
 
 void DXEngine::usage() {
+}
+
+void DXEngine::dump() {
+  mem->dump();
 }

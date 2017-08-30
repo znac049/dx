@@ -273,6 +273,7 @@ int main(int argc, char *argv[]) {
     if (engine != NULL) {
       engine->initialise();
       engine->disassemble();
+      //engine->dump();
     }
   }
   catch (exception e) {

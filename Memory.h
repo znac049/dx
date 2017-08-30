@@ -12,7 +12,7 @@ class Memory {
 
  protected:
  public:
-  enum MemoryType {UNKNOWN, BYTE, WORD, CODE};
+  enum MemoryType {UNSET, UNKNOWN, BYTE, WORD, CODE};
 
  private:
   void assertAddressValid(long addr);
@@ -35,6 +35,8 @@ class Memory {
   long maskAddress(long addr);
 
   int setType(long addr, int type, int count);
+
+  void dump();
 };
 
 #endif

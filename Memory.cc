@@ -19,6 +19,39 @@ Memory::Memory(long mSize) {
   bigEndian = true;
 }
 
+void Memory::dump() {
+  printf("Memory dump:\n");
+
+  for (int bank=0; bank < memorySize; bank += 16) {
+    bool empty = true;
+    int i;
+
+    for (i=0; i<16; i++) {
+      if (memory[bank+i]->getType() != UNSET) {
+	empty = false;
+      }
+    }
+
+    if (!empty) {
+      printf("%08x: ", bank);
+
+      for (i=0; i<16; i++) {
+	int val = memory[bank+i]->get();
+	int type = memory[bank+i]->getType();
+
+	if (type == UNSET) {
+	  printf(" --");
+	}
+	else {
+	  printf(" %02x", val);
+	}
+      }
+
+      putchar('\n');
+    }
+  }
+}
+
 void Memory::setEndian(bool big) {
   bigEndian = big;
 }
@@ -59,7 +92,8 @@ long Memory::readFile(const char *fileName, long addr) {
 
     if (c != EOF) {
       if (isValidAddress(addr)) {
-	memory[addr & addressMask]->set(c);
+	memory[maskAddress(addr)]->set(c);
+	memory[maskAddress(addr)]->setType(UNKNOWN);
 	addr++;
       }
 
@@ -78,20 +112,20 @@ long Memory::readFile(const char *fileName, long addr) {
 int Memory::getByte(long addr) {
   assertAddressValid(addr);
 
-  return memory[addr & addressMask]->get();
+  return memory[maskAddress(addr)]->get();
 }
 
 void Memory::setByte(long addr, int b) {
   assertAddressValid(addr);
 
-  memory[addr & addressMask]->set(b);
+  memory[maskAddress(addr)]->set(b);
 }
 
 int Memory::getWord(long addr) {
   int b1, b2;
 
-  b1 = memory[addr & addressMask]->get();
-  b2 = memory[(addr+1) & addressMask]->get();
+  b1 = memory[maskAddress(addr)]->get();
+  b2 = memory[maskAddress(addr+1)]->get();
 
   return bigEndian ? ((b1<<8) | b2) : ((b2<<8) | b1);
 }
@@ -99,10 +133,10 @@ int Memory::getWord(long addr) {
 int Memory::getDword(long addr) {
   dword_t low, lowish, highish, high;
 
-  low     = memory[(addr+3) & addressMask]->get();
-  lowish  = memory[(addr+2) & addressMask]->get();
-  highish = memory[(addr+1) & addressMask]->get();
-  high    = memory[addr & addressMask]->get();
+  low     = memory[maskAddress(addr+3)]->get();
+  lowish  = memory[maskAddress(addr+2)]->get();
+  highish = memory[maskAddress(addr+1)]->get();
+  high    = memory[maskAddress(addr)]->get();
 
   return low | (lowish << 8) | (highish << 16) | (high << 24);
 }
@@ -117,7 +151,8 @@ int Memory::setType(long addr, int type, int count) {
   count = count * size;
   for (int i=0; i<count; i++) {
     if (isValidAddress(addr+i)) {
-      memory[(addr+i) & addressMask]->setType(type);
+      printf(" %04x", maskAddress(addr+i));
+      memory[maskAddress(addr+i)]->setType(type);
     }
   }
 

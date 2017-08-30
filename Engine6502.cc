@@ -351,6 +351,7 @@ void Engine6502::initialise() {
   }
 
   // Read the rom image
+  mem->setEndian(false);
 
   readVector(RESETVec, "Reset");
   readVector(NMIVec,   "NMI");
@@ -396,6 +397,7 @@ int Engine6502::disassemble(long addr, OutputItem *out) {
   long target;
   char regName;
 
+  printf("in 6502 disassemble\n");
   pc = addr = mem->maskAddress(addr);
 
   out->clear();
@@ -405,13 +407,14 @@ int Engine6502::disassemble(long addr, OutputItem *out) {
     Utils::abortf("disassemble() - Address $%x out of range.", addr);
   }
 
+#if 0
   if (labels->isLabel(pc)) {
     labels->lookupLabel(pc, label);
   }
+#endif
 
   inst = fetch8();
   opcode = &(codes[inst]);
-  printf("inst=0x%02x, opcode=%d\n", inst, opcode);
 
   instruction = opcode->code;
 
@@ -432,6 +435,7 @@ int Engine6502::disassemble(long addr, OutputItem *out) {
     break;
 
   case _immed:
+    printf("Immediate\n");
     out->setOperand("#$%02x", fetch8());
     break;
 
@@ -448,6 +452,8 @@ int Engine6502::disassemble(long addr, OutputItem *out) {
 
   }
 
+  out->setType(Memory::CODE);
+  printf("addr=%04x, pc=%04x, delta=%d\n", addr, pc, pc-addr);
   return mem->setType(addr, Memory::CODE, pc-addr);
 }
 
