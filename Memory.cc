@@ -42,6 +42,12 @@ void Memory::dump() {
 	if (type == UNSET) {
 	  printf(" --");
 	}
+	else if (type == BYTE) {
+	  printf(" BB");
+	}
+	else if (type == WORD) {
+	  printf(" WW");
+	}
 	else {
 	  printf(" %02x", val);
 	}
@@ -148,10 +154,14 @@ int Memory::setType(long addr, int type, int count) {
 
   count = count * size;
   for (int i=0; i<count; i++) {
-    if (isValidAddress(addr+i)) {
+    if (isValidAddress(maskAddress(addr+i))) {
       memory[maskAddress(addr+i)]->setType(type);
     }
   }
 
   return count;
+}
+
+int Memory::getType(long addr) {
+  return memory[maskAddress(addr)]->getType();
 }

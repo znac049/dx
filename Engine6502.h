@@ -50,8 +50,6 @@ class Engine6502 : DXEngine {
   virtual void initialise();
   virtual void usage();
 
-  int disassembleAsBytes(OutputItem *out, long addr, int count);
-
   virtual int disassemble(long addr, OutputItem *out);
 };
 

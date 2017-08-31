@@ -28,6 +28,7 @@ void DXEngine::initialise() {
 bool DXEngine::alreadyStacked(long addr) {
   int numAddresses = addressStack.size();
 
+  addr = mem->maskAddress(addr);
   for (int i=0; i<numAddresses; i++) {
     if (addressStack.at(i) == addr) {
       return true;
@@ -38,6 +39,8 @@ bool DXEngine::alreadyStacked(long addr) {
 }
 
 void DXEngine::stackAddress(long addr) {
+  addr = mem->maskAddress(addr);
+
   if ((addr >= romStart) && (addr <= romEnd)) {
     if (!alreadyStacked(addr)) {
       //printf("push $%04x\n", addr);
@@ -171,20 +174,55 @@ int DXEngine::disassemble(long addr, OutputItem *out) {
 }
 
 void DXEngine::disassemble() {
-  while (!addressStack.empty()) {
-    long addr = addressStack.at(0);
-    long nBytes;
-    OutputItem out;
+  int i=0;
+  long addr;
+  OutputItem out(labels);
+  long nBytes;
 
-    addressStack.erase(addressStack.begin());
+  // Pass 1 - disassemble everything you can
+  while (i < addressStack.size()) {
+    addr = addressStack.at(i);
+
+    //addressStack.erase(addressStack.begin());
 
     //printf("Disassemble from $%04x\n", addr);
     nBytes = disassemble(addr, &out);
-    out.render();
+    //out.render();
     while (nBytes > 0) {
       addr += nBytes;
       nBytes = disassemble(addr, &out);
+      //out.render();
+    }
+
+    i++;
+  }
+
+  // Pass 2 - move through the rom image emitting assembly code
+  for (addr = romStart; addr < romEnd; ) {
+    int type = mem->getType(addr);
+
+    switch (type) {
+    case Memory::CODE:
+      nBytes = abs(disassemble(addr, &out));
       out.render();
+      addr += nBytes;
+      break;
+
+    case Memory::UNKNOWN:
+    case Memory::BYTE:
+      printf("Byte\n");
+      addr++;
+      break;
+
+    case Memory::WORD:
+      printf("Word!\n");
+      addr += 2;
+      break;
+
+    default:
+      printf("Yarg %d!\n", type);
+      addr++;
+      break;
     }
   }
 }

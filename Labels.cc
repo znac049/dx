@@ -56,10 +56,9 @@ bool Labels::isLabel(long addr) {
 
 void Labels::lookupLabel(long addr, char *labStr, size_t labLen, int nDigits) {
   Label *lab = findLabel(addr);
-  static char *fmt = (char *)"L%04x";
+  char fmt[MAXSTR];
 
-  fmt[0] = 'L';
-  fmt[3] ='0' + nDigits;
+  strcpy(fmt, "L%04x");
 
   if (lab != NULL) {
     if (lab->getName() != NULL) {

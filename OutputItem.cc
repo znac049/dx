@@ -6,7 +6,8 @@
 
 #include "dx.h"
 
-OutputItem::OutputItem() {
+OutputItem::OutputItem(Labels *l) {
+  labs = l;
   clear();
 }
 
@@ -24,7 +25,13 @@ void OutputItem::clear() {
 }
 
 void OutputItem::render() {
-  //printf("Render:\n");
+  char lab[MAXSTR];
+
+  if (!labs->isLabel(startAddress)) {
+    labs->lookupLabel(startAddress, lab);
+    lab[0] = EOS;
+  }
+  printf("\n%-20s ", lab);
 
   switch (type) {
   case Memory::BYTE:
@@ -36,12 +43,20 @@ void OutputItem::render() {
     break;
 
   case Memory::CODE:
-    printf("%04X     %-8s %s\n", startAddress, instruction, operand); 
+    printf("%-4s %s ", instruction, operand); 
     break;
 
   default:
     printf("Wah!\n");
     break;
+  }
+
+  if (comments.size()) {
+    printf("; %s\n", comments.at(0));
+
+    for (int i=1; i<comments.size(); i++) {
+      printf("%30s ; %s\n", "", comments.at(i));
+    }
   }
 }
 
@@ -61,8 +76,15 @@ void OutputItem::setOperand(const char *fmt, ...) {
   va_end(args);
 }
 
-void OutputItem::addComment(const char *cmnt) {
-  comments.push_back(strdup(cmnt));
+void OutputItem::addComment(const char *fmt, ...) {
+  va_list args;
+  char comment[MAXSTR];
+
+  va_start(args, fmt);
+  vsprintf(comment, fmt, args);
+  va_end(args);
+
+  comments.push_back(strdup(comment));
 }
 
 void OutputItem::setType(int nt) {

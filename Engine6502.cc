@@ -360,32 +360,6 @@ void Engine6502::initialise() {
   mem->setType(IRQVec, Memory::WORD, 3);
 }
 
-int Engine6502::disassembleAsBytes(OutputItem *out, long addr, int count) {
-  char bytes[MAXSTR];
-  char *cp = bytes;
-  int max = MAXSTR-1;
-  int i;
-
-  bytes[0] = EOS;
-
-  for (i=0; i<count; i++) {
-    snprintf(cp, max, "$%02x,", mem->getByte(addr + i));
-    max -= 4;
-    cp += 4;
-  }
-
-  max = strlen(bytes);
-  if (max) {
-    bytes[max-1] = EOS;
-  }
-
-  out->setInstruction("fcb");
-  out->setOperand(bytes);
-  mem->setType(addr, Memory::BYTE, count);
-
-  return count;
-}
-
 int Engine6502::disassemble(long addr, OutputItem *out) {
   int instruction;
   Engine6502::Opcode *opcode;
@@ -395,21 +369,19 @@ int Engine6502::disassemble(long addr, OutputItem *out) {
   long target;
   char regName;
 
-  //printf("in 6502 disassemble\n");
   pc = addr = mem->maskAddress(addr);
 
   out->clear();
   out->setAddress(addr);
+  out->addComment("%04X", addr);
 
   if (!mem->isValidAddress(addr)) {
     Utils::abortf("disassemble() - Address $%x out of range.", addr);
   }
 
-#if 0
   if (labels->isLabel(pc)) {
     labels->lookupLabel(pc, label);
   }
-#endif
 
   inst = fetch8();
   opcode = &(codes[inst]);
@@ -417,8 +389,9 @@ int Engine6502::disassemble(long addr, OutputItem *out) {
   instruction = opcode->code;
 
   if (instruction == _undoc) {
-    printf("Illegal!\n");
-    return -disassembleAsBytes(out, addr, pc - addr);
+    out->setInstruction("fcb");
+    out->setOperand("$%02x", inst);
+    return -mem->setType(addr, Memory::BYTE, 1);
   }
 
   // If we've got this far, we have a valid instruction, yippee!
@@ -438,6 +411,7 @@ int Engine6502::disassemble(long addr, OutputItem *out) {
       labels->createLabel(NULL, target);
 
       if (instruction == _jmp) {
+	out->setType(Memory::CODE);
 	return -mem->setType(addr, Memory::CODE, pc-addr);
       }
     }
@@ -480,14 +454,17 @@ int Engine6502::disassemble(long addr, OutputItem *out) {
 
       if (offset & 0x80) {
 	rel++;
+	out->addComment("-%d", rel);
 	target = pc - rel;
       }
       else {
+	out->addComment("+%d", rel);
 	target = pc + rel;
       }
 
       //printf("PC=%04x, Offset=%08x (%d), rel=%c%d, target=%04x\n", pc, offset, offset, dir, rel, target);
 
+      stackAddress(target);
       if (labels->isLabel(target)) {
 	labels->lookupLabel(target, label);
       }
@@ -505,16 +482,19 @@ int Engine6502::disassemble(long addr, OutputItem *out) {
     break;
 
   case _xind:
-    printf("NOT IMPLEMENTED!\n");
+    target = fetch8Lab(label);
+    out->setOperand("(%s,X)", label);
     break;
 
   case _indy:
-    printf("NOT IMPLEMENTED!\n");
+    target = fetch8Lab(label);
+    out->setOperand("(%s),Y", label);
     break;
 
   case _impl:
     // Special cases: RTS and RTI
     if ((instruction == _rts) || (instruction == _rti)) {
+      out->setType(Memory::CODE);
       return -mem->setType(addr, Memory::CODE, pc-addr);
     }
     break;

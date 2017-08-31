@@ -35,6 +35,7 @@ class Memory {
   long maskAddress(long addr);
 
   int setType(long addr, int type, int count);
+  int getType(long addr);
 
   void dump();
 };
