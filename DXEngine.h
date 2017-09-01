@@ -15,6 +15,9 @@ class DXEngine {
 
   bool verbose;
 
+  char byteDirective[MAXSTR];
+  char wordDirective[MAXSTR];
+
  public:
 
  private:
@@ -44,6 +47,9 @@ class DXEngine {
   virtual int disassemble(long addr, OutputItem *out);
 
   void dump();
+
+  void setByteDirective(const char *);
+  void setWordDirective(const char *);
 };
 
 #endif

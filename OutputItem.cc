@@ -25,38 +25,45 @@ void OutputItem::clear() {
 }
 
 void OutputItem::render() {
+  static const char *fmt = "%-20s %-4s %-16s ; %s\n";
+  static const char *addressFmt = "%04x";
   char lab[MAXSTR];
+  int nComments;
+  char *comment = (char *)"";
 
-  if (!labs->isLabel(startAddress)) {
+  if (labs->isLabel(startAddress)) {
     labs->lookupLabel(startAddress, lab);
-    lab[0] = EOS;
+    printf("\n");
   }
-  printf("\n%-20s ", lab);
+  else {
+    //snprintf(lab, MAXSTR, addressFmt, startAddress);
+    strcpy(lab, "");
+  }
 
   switch (type) {
   case Memory::BYTE:
-    printf("BYTE!!!!\n");
     break;
 
   case Memory::WORD:
-    printf("WORD!!!!\n");
     break;
 
   case Memory::CODE:
-    printf("%-4s %s ", instruction, operand); 
     break;
 
   default:
-    printf("Wah!\n");
+    strcpy(instruction, "???");
     break;
   }
 
-  if (comments.size()) {
-    printf("; %s\n", comments.at(0));
+  nComments = comments.size();
+  if (nComments) {
+    comment = comments.at(0);
+  }
 
-    for (int i=1; i<comments.size(); i++) {
-      printf("%30s ; %s\n", "", comments.at(i));
-    }
+  printf(fmt, lab, instruction, operand, comment);
+
+  for (int i=1; i<comments.size(); i++) {
+    printf(fmt, "", "", "", comments.at(i));
   }
 }
 

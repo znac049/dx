@@ -391,6 +391,7 @@ int Engine6502::disassemble(long addr, OutputItem *out) {
   if (instruction == _undoc) {
     out->setInstruction("fcb");
     out->setOperand("$%02x", inst);
+    out->setType(Memory::BYTE);
     return -mem->setType(addr, Memory::BYTE, 1);
   }
 
@@ -404,7 +405,7 @@ int Engine6502::disassemble(long addr, OutputItem *out) {
 
   case _abs:
     target = fetch16Lab(label);
-    out->setOperand("%s", label);
+    out->setOperand(label);
 
     if ((instruction == _jsr) || (instruction == _jmp)) {
       stackAddress(target);
@@ -433,7 +434,7 @@ int Engine6502::disassemble(long addr, OutputItem *out) {
 
   case _zpg:
     target = fetch8Lab(label);
-    out->setOperand("%s", label);
+    out->setOperand(label);
     break;
 
   case _zpgx:
@@ -472,7 +473,7 @@ int Engine6502::disassemble(long addr, OutputItem *out) {
 	snprintf(label, MAXSTR-1, "L_%04x", target);
       }
 
-      out->setOperand("%s", label);
+      out->setOperand(label);
     }
     break;
 

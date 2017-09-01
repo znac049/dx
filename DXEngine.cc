@@ -18,6 +18,9 @@ DXEngine::DXEngine(Args *arguments, long beg, long end, long mask, const char *r
   mem->setAddressMask(mask);
   mem->readFile(romFile, romStart);
 
+  setByteDirective("dc.b");
+  setWordDirective("dc.w");
+
   labels = new Labels(romStart, romEnd);
 }
 
@@ -178,6 +181,7 @@ void DXEngine::disassemble() {
   long addr;
   OutputItem out(labels);
   long nBytes;
+  char label[MAXSTR];
 
   // Pass 1 - disassemble everything you can
   while (i < addressStack.size()) {
@@ -204,27 +208,54 @@ void DXEngine::disassemble() {
     switch (type) {
     case Memory::CODE:
       nBytes = abs(disassemble(addr, &out));
-      out.render();
+
       addr += nBytes;
       break;
 
     case Memory::UNKNOWN:
     case Memory::BYTE:
-      printf("Byte\n");
+      out.setInstruction(byteDirective);
+      out.setOperand("$%02X", mem->getByte(addr));
+
       addr++;
       break;
 
     case Memory::WORD:
-      printf("Word!\n");
-      addr += 2;
+      {
+	long val = mem->getWord(addr);
+
+	out.setInstruction(wordDirective);
+	if (labels->isLabel(val)) {
+	  labels->lookupLabel(val, label);
+	  out.setOperand(label);
+	}
+	else {
+	  out.setOperand("$%04X", val);
+	}
+
+	addr += 2;
+      }
       break;
 
     default:
-      printf("Yarg %d!\n", type);
+      out.setInstruction("???");
+      out.setOperand("$%02X", mem->getByte(addr));
+      out.addComment("Addr=%04X, Data=%02X, Type=%d", addr, mem->getByte(addr), type);
+
       addr++;
       break;
     }
+
+    out.render();
   }
+}
+
+void DXEngine::setByteDirective(const char *mnem) {
+  strcpy(byteDirective, mnem);
+}
+
+void DXEngine::setWordDirective(const char *mnem) {
+  strcpy(wordDirective, mnem);
 }
 
 void DXEngine::usage() {

@@ -252,6 +252,8 @@ int main(int argc, char *argv[]) {
       Utils::abortf("Only one filename expected.\n");
     }
 
+    romEnd = romStart + romSize;
+
     arg = args.getArg(0, Args::argument);
 
     if ((strcmp(cpuStr, "6809") == 0) || (strcmp(cpuStr, "6309") == 0) || (strcasecmp(cpuStr, "6x09") == 0)) {
