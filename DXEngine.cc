@@ -21,6 +21,8 @@ DXEngine::DXEngine(Args *arguments, long beg, long end, long mask, const char *r
   setByteDirective("dc.b");
   setWordDirective("dc.w");
 
+  byteStack.clear();
+
   labels = new Labels(romStart, romEnd);
 }
 
@@ -205,17 +207,21 @@ void DXEngine::disassemble() {
   for (addr = romStart; addr < romEnd; ) {
     int type = mem->getType(addr);
 
+    out.clear();
+
     switch (type) {
     case Memory::CODE:
+      flushByteStack();
+
       nBytes = abs(disassemble(addr, &out));
 
       addr += nBytes;
+      out.render();
       break;
 
     case Memory::UNKNOWN:
     case Memory::BYTE:
-      out.setInstruction(byteDirective);
-      out.setOperand("$%02X", mem->getByte(addr));
+      stackByte(mem->getByte(addr));
 
       addr++;
       break;
@@ -224,7 +230,10 @@ void DXEngine::disassemble() {
       {
 	long val = mem->getWord(addr);
 
+	flushByteStack();
+
 	out.setInstruction(wordDirective);
+	out.addComment("%04X", addr);
 	if (labels->isLabel(val)) {
 	  labels->lookupLabel(val, label);
 	  out.setOperand(label);
@@ -234,20 +243,26 @@ void DXEngine::disassemble() {
 	}
 
 	addr += 2;
+
+	out.render();
       }
       break;
 
     default:
+      flushByteStack();
+
       out.setInstruction("???");
       out.setOperand("$%02X", mem->getByte(addr));
       out.addComment("Addr=%04X, Data=%02X, Type=%d", addr, mem->getByte(addr), type);
 
       addr++;
+
+      out.render();
       break;
     }
-
-    out.render();
   }
+  
+  flushByteStack();
 }
 
 void DXEngine::setByteDirective(const char *mnem) {
@@ -263,4 +278,40 @@ void DXEngine::usage() {
 
 void DXEngine::dump() {
   mem->dump();
+}
+
+void DXEngine::stackByte(int byte) {
+  // Is there room to stack this?
+  if (byteStack.size() >= 8) {
+    flushByteStack();
+  }
+
+  byteStack.push_back(byte);
+}
+
+void DXEngine::flushByteStack() {
+  OutputItem out(labels);
+  char data[MAXSTR];
+  char single[8];
+  int stackSize = byteStack.size();
+
+  if (byteStack.size() > 0) {
+    out.setType(Memory::BYTE);
+    strcpy(data, "");
+
+    for (int i=0; i<stackSize; i++) {
+      if (i != 0) {
+	strcat(data, ",");
+      }
+
+      sprintf(single, "$%02X", byteStack.at(i));
+      strcat(data, single);
+    }
+
+    out.setInstruction(byteDirective);
+    out.setOperand(data);
+    out.render();
+
+    byteStack.clear();
+  }
 }

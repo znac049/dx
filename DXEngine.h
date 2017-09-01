@@ -12,6 +12,7 @@ class DXEngine {
   Memory *mem;
   Labels *labels;
   vector<long> addressStack;
+  vector<int> byteStack;
 
   bool verbose;
 
@@ -22,6 +23,9 @@ class DXEngine {
 
  private:
  protected:
+  void stackByte(int byte);
+  void flushByteStack();
+
  public:
   DXEngine(Args *args, long beg, long end, long mask, const char *file);
   DXEngine();

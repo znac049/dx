@@ -25,11 +25,12 @@ void OutputItem::clear() {
 }
 
 void OutputItem::render() {
-  static const char *fmt = "%-20s %-4s %-16s ; %s\n";
+  static const char *fmt = "%-20s %-4s %-32s %c %s\n";
   static const char *addressFmt = "%04x";
   char lab[MAXSTR];
   int nComments;
   char *comment = (char *)"";
+  char commentChar;
 
   if (labs->isLabel(startAddress)) {
     labs->lookupLabel(startAddress, lab);
@@ -55,15 +56,17 @@ void OutputItem::render() {
     break;
   }
 
+  commentChar = ' ';
   nComments = comments.size();
   if (nComments) {
     comment = comments.at(0);
+    commentChar = ';';
   }
 
-  printf(fmt, lab, instruction, operand, comment);
+  printf(fmt, lab, instruction, operand, commentChar, comment);
 
   for (int i=1; i<comments.size(); i++) {
-    printf(fmt, "", "", "", comments.at(i));
+    printf(fmt, "", "", "", commentChar, comments.at(i));
   }
 }
 

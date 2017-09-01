@@ -466,6 +466,8 @@ int Engine6502::disassemble(long addr, OutputItem *out) {
       //printf("PC=%04x, Offset=%08x (%d), rel=%c%d, target=%04x\n", pc, offset, offset, dir, rel, target);
 
       stackAddress(target);
+      labels->createLabel(NULL, target);
+
       if (labels->isLabel(target)) {
 	labels->lookupLabel(target, label);
       }

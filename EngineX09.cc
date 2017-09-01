@@ -1560,6 +1560,7 @@ int EngineX09::disassemble(long addr, OutputItem *out) {
   case _implied:
     // Special cases: RTS and RTI
     if ((instruction == _rts) || (instruction == _rti)) {
+      out->setType(Memory::CODE);
       return -mem->setType(addr, Memory::CODE, pc-addr);
     }
     break;
@@ -1604,6 +1605,7 @@ int EngineX09::disassemble(long addr, OutputItem *out) {
     out->setOperand("%s", label);
 
     if (instruction == _bra) {
+      out->setType(Memory::CODE);
       return -mem->setType(addr, Memory::CODE, pc-addr);
     }
     break;
@@ -1615,6 +1617,7 @@ int EngineX09::disassemble(long addr, OutputItem *out) {
     out->setOperand("%s", label);
 
     if (instruction == _lbra) {
+      out->setType(Memory::CODE);
       return -mem->setType(addr, Memory::CODE, pc-addr);
     }
     break;
@@ -1629,6 +1632,7 @@ int EngineX09::disassemble(long addr, OutputItem *out) {
   case _usr_post:
   case _sys_post:
     if (disassembleReglist(out, opcode)) {
+      out->setType(Memory::CODE);
       return -mem->setType(addr, Memory::CODE, pc-addr);
     }
     break;
@@ -1693,7 +1697,8 @@ int EngineX09::disassemble(long addr, OutputItem *out) {
     break;
 #endif
   }
-
+  
+  out->setType(Memory::CODE);
   return mem->setType(addr, Memory::CODE, pc-addr);
 }
 
