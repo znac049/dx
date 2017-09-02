@@ -265,9 +265,6 @@ int main(int argc, char *argv[]) {
     else if (strcasecmp(cpuStr, "dvg") == 0) {
       engine = (DXEngine *)new EngineDVG(&args, romStart, romEnd, addressMask, arg->option);
     }
-    else if (strcasecmp(cpuStr, "cross") == 0) {
-      engine = (DXEngine *)new EngineCross(&args, romStart, romEnd, addressMask, arg->option);
-    }
     else {
       printf("????????\n");
     }
@@ -300,9 +297,6 @@ int main(int argc, char *argv[]) {
 
     EngineDVG *dvg = new EngineDVG();
     dvg->usage();
-
-    EngineCross *cross = new EngineCross();
-    cross->usage();
   }
 
   return 0;
