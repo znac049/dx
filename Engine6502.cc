@@ -339,6 +339,9 @@ void Engine6502::initialise() {
     {NULL,         0,   NULL,      0}
   };
 
+  setByteDirective("fcb");
+  setWordDirective("fdb");
+
   try {
     args->parseArgs(mandatoryArgs, optionalArgs, true);
 
