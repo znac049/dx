@@ -456,11 +456,11 @@ int Engine6502::disassemble(long addr, OutputItem *out) {
 
       if (offset & 0x80) {
 	rel = (~rel & 0xff) + 1;
-	out->addComment("%02X -> %02X ->  -%d", offset, ~offset & 0xff, rel);
+	//out->addComment("%02X -> %02X ->  -%d", offset, ~offset & 0xff, rel);
 	target = pc - rel;
       }
       else {
-	out->addComment("%02X -> +%d", offset, rel);
+	//out->addComment("%02X -> +%d", offset, rel);
 	target = pc + rel;
       }
 

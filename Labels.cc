@@ -12,7 +12,7 @@ Labels::Labels(long start, long end) {
 void Labels::exportLabels() {
   int numLabels = labels.size();
 
-  printf("\n; Labels:\n;\n");
+  printf("\n\n; Labels:\n;\n");
 
   for (int i=0; i<numLabels; i++) {
     Label *lab = labels.at(i);
@@ -34,8 +34,32 @@ void Labels::exportLabels() {
   printf("\n");
 }
 
+void Labels::dumpLabels() {
+  int numLabels = labels.size();
+
+  printf("\n\n; Labels:\n;\n");
+
+  for (int i=0; i<numLabels; i++) {
+    Label *lab = labels.at(i);
+    long addr = lab->getAddress();
+
+    if (lab->getName() == NULL) {
+      char l[MAXSTR];
+
+      snprintf(l, MAXSTR-1, "L%04x", addr);
+      printf("%-21s = $%04x\n", l, addr);
+    }
+    else {
+      printf("%-21s = $%04x\n", lab->getName(), addr);
+    }
+  }
+
+  printf("\n");
+}
+
 void Labels::createLabel(const char *lab, long addr) {
-  if (!isLabel(addr)) {
+
+  if (!isLabel(addr, lab)) {
     Label *label = new Label(lab, addr);
 
     labels.push_back(label);
@@ -66,6 +90,26 @@ bool Labels::isLabel(const char *name) {
   return false;
 }
 
+bool Labels::isLabel(long addr, const char *name) {
+  int nLabels = labels.size();
+
+  for (int i=0; i<nLabels; i++) {
+    Label *lab = labels.at(i);
+
+    if (
+	(lab->getAddress() == addr) &&
+	(strcasecmp(lab->getName(), name) == 0)
+	) {
+      //printf("%s@%04x - already a label\n", name, addr);
+      return true;
+    }
+  }
+
+  //printf("%s@%04x - NOT a label\n", name, addr);
+
+  return false;
+}
+
 int Labels::labelCount(long addr) {
   int nLabels = labels.size();
   int count = 0;
@@ -79,8 +123,8 @@ int Labels::labelCount(long addr) {
   return count;
 }
 
-void Labels::lookupLabel(long addr, char *labStr, size_t labLen, int nDigits) {
-  Label *lab = findLabel(addr);
+Label *Labels::lookupLabel(long addr, char *labStr, size_t labLen, int nDigits, int index) {
+  Label *lab = findLabel(addr, index);
   char fmt[MAXSTR];
 
   strcpy(fmt, "L%04x");
@@ -97,28 +141,54 @@ void Labels::lookupLabel(long addr, char *labStr, size_t labLen, int nDigits) {
     fmt[0] = '$';
     snprintf(labStr, labLen, fmt, addr);  
   }
+
+  return lab;
 }
 
-Label *Labels::findLabel(long addr) {
+void Labels::lookupLabel(long addr, char *labStr, size_t labLen, int nDigits) {
+  (void) lookupLabel(addr, labStr, labLen, nDigits, 0);
+}
+
+Label *Labels::findLabel(long addr, int index) {
   int numLabels = labels.size();
+
+  if (index >= labelCount(addr)) {
+    return NULL;
+  }
 
   for (int i=0; i<numLabels; i++) {
     Label *lab = labels.at(i);
-
+    
     if (lab->getAddress() == addr) {
-      return lab;
+      if (index == 0) {
+	return lab;
+      }
+
+      index--;
     }
   }
 
   return NULL;
 }
 
+Label *Labels::findLabel(long addr) {
+  return findLabel(addr, 0);
+}
+
 void Labels::lookupLabel(long addr, char *labStr) {
-  return lookupLabel(addr, labStr, MAXSTR-1, 4);
+  (void) lookupLabel(addr, labStr, MAXSTR-1, 4);
+}
+
+void Labels::lookupLabelAt(long addr, char *labStr, int index) {
+  Label *lab = lookupLabel(addr, labStr, MAXSTR-1, 4, index);
+
+  if (lab == NULL) {
+    sprintf(labStr, "Bad_Index");
+  }
 }
 
 void Labels::lookupShortLabel(long addr, char *labStr) {
-  return lookupLabel(addr, labStr, MAXSTR-1, 2);
+  (void) lookupLabel(addr, labStr, MAXSTR-1, 2);
 }
 
 void Labels::processLine(char *line) {

@@ -5,8 +5,6 @@
 
 #include "dx.h"
 
-int DXEngine::rLab = 0;
-
 DXEngine::DXEngine() {
 }
 
@@ -63,6 +61,8 @@ void DXEngine::stackAddress(long addr, const char *lab) {
 void DXEngine::stackAddress(long addr) {
   char lab[MAXSTR];
 
+  addr = mem->maskAddress(addr);
+
   sprintf(lab, "L%04x", addr);
   stackAddress(addr, lab);
 }
@@ -70,8 +70,12 @@ void DXEngine::stackAddress(long addr) {
 void DXEngine::stackRelAddress(long addr) {
   char lab[MAXSTR];
 
-  sprintf(lab, "R%04d", rLab++);
-  stackAddress(addr, lab);
+  addr = mem->maskAddress(addr);
+
+  if (!labels->isLabel(addr)) {
+    sprintf(lab, "R%04x", addr);
+    stackAddress(addr, lab);
+  }
 }
 
 void DXEngine::readVector(long addr, const char *vecName) {
@@ -81,7 +85,7 @@ void DXEngine::readVector(long addr, const char *vecName) {
   //printf("Get %s vector: $%04x\n", vecName, vector);
 
   if ((vector >= romStart) && (vector <= romEnd)) {
-    stackAddress(vector);
+    addressStack.push_back(vector);
     snprintf(name, MAXSTR-1, "%s_Handler", vecName);
     labels->createLabel(name, vector);
   }
@@ -287,6 +291,8 @@ void DXEngine::disassemble() {
   }
   
   flushByteStack();
+
+  //labels->dumpLabels();
 }
 
 void DXEngine::setByteDirective(const char *mnem) {
@@ -306,7 +312,7 @@ void DXEngine::dump() {
 
 void DXEngine::stackByte(int byte) {
   // Is there room to stack this?
-  if (byteStack.size() >= 8) {
+  if (byteStack.size() >= 4) {
     flushByteStack();
   }
 

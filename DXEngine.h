@@ -19,8 +19,6 @@ class DXEngine {
   char byteDirective[MAXSTR];
   char wordDirective[MAXSTR];
 
-  static int rLab;
-
  public:
 
  private:

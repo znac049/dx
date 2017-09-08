@@ -25,16 +25,26 @@ void OutputItem::clear() {
 }
 
 void OutputItem::render() {
-  static const char *fmt = "%-20s %-4s %-32s %c %s\n";
+  static const char *fmt = "%-20s %-4s %-24s %c %s\n";
   static const char *addressFmt = "%04x";
   char lab[MAXSTR];
   int nComments;
   char *comment = (char *)"";
   char commentChar;
+  int nLabels = labs->labelCount(startAddress);
 
-  if (labs->isLabel(startAddress)) {
-    labs->lookupLabel(startAddress, lab);
+  if (nLabels != 0) {
     printf("\n");
+
+    for (int i=1; i<nLabels; i++) {
+      char numStr[MAXSTR];
+
+      sprintf(numStr, "%d", i);
+      labs->lookupLabelAt(startAddress, lab, i);
+      printf(fmt, lab, "", "", ';', numStr);
+    }
+
+    labs->lookupLabel(startAddress, lab);
   }
   else {
     //snprintf(lab, MAXSTR, addressFmt, startAddress);
