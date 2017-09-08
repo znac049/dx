@@ -412,7 +412,6 @@ int Engine6502::disassemble(long addr, OutputItem *out) {
 
     if ((instruction == _jsr) || (instruction == _jmp)) {
       stackAddress(target);
-      labels->createLabel(NULL, target);
 
       if (instruction == _jmp) {
 	out->setType(Memory::CODE);
@@ -453,23 +452,19 @@ int Engine6502::disassemble(long addr, OutputItem *out) {
   case _rel:
     {
       long offset = fetch8();
-      long rel = offset & 0x7f;
-      char dir = (offset & 0x80)?'-':'+';
+      long rel = offset;
 
       if (offset & 0x80) {
-	rel++;
-	out->addComment("-%d", rel);
+	rel = (~rel & 0xff) + 1;
+	out->addComment("%02X -> %02X ->  -%d", offset, ~offset & 0xff, rel);
 	target = pc - rel;
       }
       else {
-	out->addComment("+%d", rel);
+	out->addComment("%02X -> +%d", offset, rel);
 	target = pc + rel;
       }
 
-      //printf("PC=%04x, Offset=%08x (%d), rel=%c%d, target=%04x\n", pc, offset, offset, dir, rel, target);
-
-      stackAddress(target);
-      labels->createLabel(NULL, target);
+      stackRelAddress(target);
 
       if (labels->isLabel(target)) {
 	labels->lookupLabel(target, label);

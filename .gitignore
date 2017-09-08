@@ -5,5 +5,4 @@ dx
 *.lst
 *.map
 *.bin
-*.asm
 *.srec

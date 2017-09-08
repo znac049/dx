@@ -19,6 +19,8 @@ class DXEngine {
   char byteDirective[MAXSTR];
   char wordDirective[MAXSTR];
 
+  static int rLab;
+
  public:
 
  private:
@@ -44,7 +46,9 @@ class DXEngine {
   int fetch32();
 
   bool alreadyStacked(long addr);
+  void stackAddress(long addr, const char *lab);
   void stackAddress(long addr);
+  void stackRelAddress(long addr);
   void readVector(long addr, const char *vecName);
 
   void disassemble();

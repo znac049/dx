@@ -1,0 +1,54 @@
+ThreeKHz = $2001
+VGHalted = $2002
+ShieldSW = $2003
+FireSW = $2004
+SlamSW = $2006
+SelfTestSW = $2007
+LCoinSW = $2400
+CCoinSW = $2401
+RCoinSW = $2402
+PlayerOneSW = $2403
+PlayerTwoSW = $2404
+ThrustSW = $2405
+RotateRSW = $2406
+RotateLSW = $2407
+Option87 = $2800
+Option65 = $2801
+Option43 = $2802
+Option21 = $2803
+
+Pk_F1_Pot0 = $2c00
+Pk_C1_Pot1 = $2c01
+Pk_F2_Pot2 = $2c02
+Pk_C2_Pot3 = $2c03
+Pk_F3_Pot4 = $2c04
+Pk_C3_Pot5 = $2c05
+Pk_F4_Pot6 = $2c06
+Pk_C4_Pot7 = $2c07
+Pk_Ctl_All = $2c08
+Pk_STim_Kbc = $2c09
+Pk_SkRes_Rnd = $2c0a
+Pk_PotGo = $2c0b
+Pk_SerData = $2c0d
+Pk_IrqCtl = $2c0e
+Pk_SerCtl = $2c0f
+
+EaromRd = $2c40
+StartVG = $3000
+LatchEA = $3200
+WdogReset = $3400
+ExplodeCtrl = $3600
+VGReset = $3800
+EAControl = $3a00
+
+P1LED = $3c00
+P2LED = $3c01
+ThrustSnd = $3c03
+BankSel = $3c04
+LCount = $3c05
+CCount = $3c06
+RCoin = $3c07
+
+NoiseReset = $3e00
+
+VRAM = $4000

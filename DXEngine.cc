@@ -5,6 +5,8 @@
 
 #include "dx.h"
 
+int DXEngine::rLab = 0;
+
 DXEngine::DXEngine() {
 }
 
@@ -43,8 +45,12 @@ bool DXEngine::alreadyStacked(long addr) {
   return false;
 }
 
-void DXEngine::stackAddress(long addr) {
+void DXEngine::stackAddress(long addr, const char *lab) {
   addr = mem->maskAddress(addr);
+
+  if (!labels->isLabel(lab)) {
+    labels->createLabel(lab, addr);
+  }
 
   if ((addr >= romStart) && (addr <= romEnd)) {
     if (!alreadyStacked(addr)) {
@@ -52,6 +58,20 @@ void DXEngine::stackAddress(long addr) {
       addressStack.push_back(addr);
     }
   }
+}
+
+void DXEngine::stackAddress(long addr) {
+  char lab[MAXSTR];
+
+  sprintf(lab, "L%04x", addr);
+  stackAddress(addr, lab);
+}
+
+void DXEngine::stackRelAddress(long addr) {
+  char lab[MAXSTR];
+
+  sprintf(lab, "R%04d", rLab++);
+  stackAddress(addr, lab);
 }
 
 void DXEngine::readVector(long addr, const char *vecName) {
@@ -91,7 +111,7 @@ int DXEngine::fetch8Lab(char *label) {
     labels->lookupLabel(target, label);
   }
   else {
-    snprintf(label, MAXSTR-1, "L_%02x", target);
+    snprintf(label, MAXSTR-1, "$%02x", target);
   }
 
   return target;
@@ -104,7 +124,7 @@ int DXEngine::fetch8RelLab(char *label) {
     labels->lookupLabel(target, label);
   }
   else {
-    snprintf(label, MAXSTR-1, "L_%02x", target);
+    snprintf(label, MAXSTR-1, "$%02x", target);
   }
 
   return target;
@@ -141,7 +161,7 @@ int DXEngine::fetch16Lab(char *label) {
     labels->lookupLabel(target, label);
   }
   else {
-    snprintf(label, MAXSTR-1, "L_%04x", target);
+    snprintf(label, MAXSTR-1, "$%04x", target);
   }
 
   return target;
@@ -154,7 +174,7 @@ int DXEngine::fetch16RelLab(char *label) {
     labels->lookupLabel(target, label);
   }
   else {
-    snprintf(label, MAXSTR-1, "L_%04x", target);
+    snprintf(label, MAXSTR-1, "$%04x", target);
   }
 
   return target;
@@ -204,6 +224,10 @@ void DXEngine::disassemble() {
   }
 
   // Pass 2 - move through the rom image emitting assembly code
+  labels->exportLabels();
+
+  printf("\n");
+
   for (addr = romStart; addr < romEnd; ) {
     int type = mem->getType(addr);
 

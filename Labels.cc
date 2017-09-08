@@ -35,23 +35,48 @@ void Labels::exportLabels() {
 }
 
 void Labels::createLabel(const char *lab, long addr) {
-  Label *label = new Label(lab, addr);
+  if (!isLabel(addr)) {
+    Label *label = new Label(lab, addr);
 
-  labels.push_back(label);
+    labels.push_back(label);
+  }
 }
 
 bool Labels::isLabel(long addr) {
   int nLabels = labels.size();
 
   for (int i=0; i<nLabels; i++) {
-    Label *lab = labels.at(i);
-
-    if (lab->getAddress() == addr) {
+    if (labels.at(i)->getAddress() == addr) {
       return true;
     }
   }
 
   return false;
+}
+
+bool Labels::isLabel(const char *name) {
+  int nLabels = labels.size();
+
+  for (int i=0; i<nLabels; i++) {
+    if (strcasecmp(labels.at(i)->getName(), name) == 0) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+int Labels::labelCount(long addr) {
+  int nLabels = labels.size();
+  int count = 0;
+
+  for (int i=0; i<nLabels; i++) {
+    if (labels.at(i)->getAddress() == addr) {
+      count++;
+    }
+  }
+
+  return count;
 }
 
 void Labels::lookupLabel(long addr, char *labStr, size_t labLen, int nDigits) {

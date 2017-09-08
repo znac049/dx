@@ -21,6 +21,8 @@ class Labels {
 
   void createLabel(const char *lab, long addr);
   bool isLabel(long addr);
+  bool isLabel(const char *name);
+  int labelCount(long addr);
   Label *findLabel(long addr);
 
   void lookupLabel(long addr, char *labStr, size_t labLen, int nDigits);
