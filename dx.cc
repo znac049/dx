@@ -265,6 +265,9 @@ int main(int argc, char *argv[]) {
     else if (strcasecmp(cpuStr, "dvg") == 0) {
       engine = (DXEngine *)new EngineDVG(&args, romStart, romEnd, addressMask, arg->option);
     }
+    else if (strcasecmp(cpuStr, "atari") == 0) {
+      engine = (DXEngine *)new EngineAtari(&args, romStart, romEnd, addressMask, arg->option);
+    }
     else {
       printf("????????\n");
     }
@@ -297,6 +300,9 @@ int main(int argc, char *argv[]) {
 
     EngineDVG *dvg = new EngineDVG();
     dvg->usage();
+
+    EngineAtari *atari = new EngineAtari();
+    atari->usage();
   }
 
   return 0;

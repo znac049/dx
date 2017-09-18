@@ -31,6 +31,18 @@ void OutputItem::render(char *lab, char *inst, char *op, char *cmnt) {
     addComment(cmnt);
   }
 
+  if (lab == NULL) {
+    lab = label;
+  }
+
+  if (inst == NULL) {
+    inst = instruction;
+  }
+
+  if (op == NULL) {
+    op = operand;
+  }
+
   if (comments.size() == 0) {
     printf(renderFmt, lab, inst, op, ' ', "");
   }
@@ -38,6 +50,8 @@ void OutputItem::render(char *lab, char *inst, char *op, char *cmnt) {
     printf(renderFmt, lab, inst, op, ';', comments.at(0));
     comments.erase(comments.begin());
   }
+
+  clear();
 }
 
 void OutputItem::flushComments() {

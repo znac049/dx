@@ -2,6 +2,7 @@ SRC = dx.cc \
 	Args.cc \
 	DXEngine.cc \
 	Engine6502.cc \
+	EngineAtari.cc \
 	EngineX09.cc \
 	EngineDVG.cc \
 	Label.cc \
@@ -41,4 +42,5 @@ clean:
 
 test: all
 	./dx --cpu=6502 --rom-start=0x6000 --rom-size=8192 --address-mask=0x7fff --label-file=Roms/ad-v3.lab Roms/ad-v3.bin >Roms/ad-v3.test
+	./dx --cpu=atari --rom-start=0x6000 --rom-size=8192 --address-mask=0x7fff --label-file=Roms/ad-v3.lab Roms/ad-v3.bin >Roms/ad-v3.a09
 	./dx --cpu=dvg --game=asteroids --rom-start=0x0000 --rom-size=4096 --address-mask=0x7fff Roms/ad-vg-v3.bin >Roms/ad-vg-v3.test
