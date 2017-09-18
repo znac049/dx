@@ -11,6 +11,7 @@ class DXEngine {
   long pc;
   Memory *mem;
   Labels *labels;
+  long byteStackAddr;
   vector<long> addressStack;
   vector<int> byteStack;
 
@@ -23,7 +24,7 @@ class DXEngine {
 
  private:
  protected:
-  void stackByte(int byte);
+  void stackByte(int byte, long addr);
   void flushByteStack();
 
  public:
@@ -49,8 +50,14 @@ class DXEngine {
   void stackRelAddress(long addr);
   void readVector(long addr, const char *vecName);
 
+  virtual bool canBranch(long addr);
+  virtual long branchAddress(long addr);
+  virtual bool validCode(long addr);
+  virtual int codeSize(long addr);
+
   void disassemble();
-  virtual int disassemble(long addr, OutputItem *out);
+  virtual int disassemble(long addr);
+  virtual void pass1();
 
   void dump();
 

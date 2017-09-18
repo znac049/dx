@@ -16,6 +16,7 @@ class Memory {
 
  private:
   void assertAddressValid(long addr);
+  void setEndian(bool big);
 
  protected:
  public:
@@ -23,7 +24,8 @@ class Memory {
 
   long readFile(const char *file_name, long addr);
 
-  void setEndian(bool big);
+  void setBigEndian();
+  void setLittleEndian();
   void setAddressMask(long mask);
   bool isValidAddress(long addr);
   int getByte(long addr);

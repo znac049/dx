@@ -353,8 +353,7 @@ void Engine6502::initialise() {
     Utils::abortf("Bad command line.\n");
   }
 
-  // Read the rom image
-  mem->setEndian(false);
+  mem->setLittleEndian();
 
   readVector(RESETVec, "Reset");
   readVector(NMIVec,   "NMI");
@@ -363,90 +362,145 @@ void Engine6502::initialise() {
   mem->setType(IRQVec, Memory::WORD, 3);
 }
 
-int Engine6502::disassemble(long addr, OutputItem *out) {
-  int instruction;
-  Engine6502::Opcode *opcode;
-  int immVal;
+bool Engine6502::canBranch(long addr) {
+  int inst = mem->getByte(addr);
+  Engine6502::Opcode *op = &(codes[inst]);
+
+  if ((op->mode == _abs) && ((op->code == _jsr) || (op->code == _jmp))) {
+    return true;
+  }
+  else if (op->mode == _rel) {
+    return true;
+  }
+
+  return false;
+}
+
+long Engine6502::branchAddress(long addr) {
+  int inst = mem->getByte(addr);
+  long res = -1;
+  Engine6502::Opcode *op = &(codes[inst]);
+
+  if ((op->mode == _abs) && ((op->code == _jsr) || (op->code == _jmp))) {
+    res = mem->getWord(addr+1);
+  }
+  else if (op->mode == _rel) {
+    long offset = mem->getByte(addr+1);
+    long rel = offset;
+
+    addr += 2;
+    if (offset & 0x80) {
+      rel = (~rel & 0xff) + 1;
+      res = addr - rel;
+    }
+    else {
+      res = addr + rel;
+    }
+  }
+
+  return res;
+}
+
+bool Engine6502::validCode(long addr) {
+  int inst = mem->getByte(addr);
+
+  if (codes[inst].code == _undoc) {
+    return false;
+  }
+
+  return true;
+}
+
+int Engine6502::codeSize(long addr) {
+  int inst = mem->getByte(addr);
+
+  switch (codes[inst].mode) {
+  case _immed:
+  case _rel:
+  case _zpg:
+  case _zpgx:
+  case _zpgy:
+  case _xind:
+  case _indy:
+    return 2;
+
+  case _abs:
+  case _absx:
+  case _absy:
+  case _ind:
+    return 3;
+
+  case _accum:
+  case _impl:
+    break;
+
+  case _illegal:
+    return -1;
+  }
+
+  return 1;
+}
+
+int Engine6502::disassemble(long addr) {
+  Engine6502::Opcode *op;
   int inst;
-  char label[MAXSTR];
   long target;
-  char regName;
+  OutputItem out(labels);
+  char label[MAXSTR];
 
   pc = addr = mem->maskAddress(addr);
 
-  out->clear();
-  out->setAddress(addr);
-  out->addComment("%04X", addr);
-
-  if (!mem->isValidAddress(addr)) {
-    Utils::abortf("disassemble() - Address $%x out of range.", addr);
-  }
-
-  if (labels->isLabel(pc)) {
-    labels->lookupLabel(pc, label);
-  }
+  out.clear();
+  out.setAddress(addr);
+  out.addComment("%04X", addr);
 
   inst = fetch8();
-  opcode = &(codes[inst]);
+  op = &(codes[inst]);
 
-  instruction = opcode->code;
+  out.setInstruction(mne[op->code]);
 
-  if (instruction == _undoc) {
-    out->setInstruction("fcb");
-    out->setOperand("$%02x", inst);
-    out->setType(Memory::BYTE);
-    return -mem->setType(addr, Memory::BYTE, 1);
-  }
-
-  // If we've got this far, we have a valid instruction, yippee!
-  out->setInstruction(mne[instruction]);
-
-  switch (opcode->mode) {
+  switch (op->mode) {
   case _immed:
-    out->setOperand("#$%02x", fetch8());
+    out.setOperand("#$%02x", fetch8());
     break;
 
   case _abs:
     target = fetch16Lab(label);
-    out->setOperand(label);
-
-    if ((instruction == _jsr) || (instruction == _jmp)) {
-      stackAddress(target);
-
-      if (instruction == _jmp) {
-	out->setType(Memory::CODE);
-	return -mem->setType(addr, Memory::CODE, pc-addr);
-      }
+    out.setOperand(label);
+    
+    if (op->code == _jmp) {
+      out.render();
+      return addr-pc;
     }
     break;
 
   case _absx:
     target = fetch16Lab(label);
-    out->setOperand("%s,X", label);
+    out.setOperand("%s,X", label);
     break;
 
   case _absy:
     target = fetch16Lab(label);
-    out->setOperand("%s,Y", label);
+    out.setOperand("%s,Y", label);
     break;
 
   case _accum:
-    out->setOperand("A");
+    out.setOperand("A");
     break;
 
   case _zpg:
     target = fetch8Lab(label);
-    out->setOperand(label);
+    out.setOperand(label);
     break;
 
   case _zpgx:
     target = fetch8Lab(label);
-    out->setOperand("%s,X", label);
+    out.setOperand("%s,X", label);
     break;
 
   case _zpgy:
     target = fetch8Lab(label);
-    out->setOperand("%s,Y", label);
+    out.setOperand("%s,Y", label);
     break;
 
   case _rel:
@@ -456,15 +510,13 @@ int Engine6502::disassemble(long addr, OutputItem *out) {
 
       if (offset & 0x80) {
 	rel = (~rel & 0xff) + 1;
-	//out->addComment("%02X -> %02X ->  -%d", offset, ~offset & 0xff, rel);
+	//out.addComment("%02X -> %02X ->  -%d", offset, ~offset & 0xff, rel);
 	target = pc - rel;
       }
       else {
-	//out->addComment("%02X -> +%d", offset, rel);
+	//out.addComment("%02X -> +%d", offset, rel);
 	target = pc + rel;
       }
-
-      stackRelAddress(target);
 
       if (labels->isLabel(target)) {
 	labels->lookupLabel(target, label);
@@ -473,36 +525,35 @@ int Engine6502::disassemble(long addr, OutputItem *out) {
 	snprintf(label, MAXSTR-1, "L_%04x", target);
       }
 
-      out->setOperand(label);
+      out.setOperand(label);
     }
     break;
 
   case _ind:
     target = fetch16Lab(label);
-    out->setOperand("(%s)", label);
+    out.setOperand("(%s)", label);
     break;
 
   case _xind:
     target = fetch8Lab(label);
-    out->setOperand("(%s,X)", label);
+    out.setOperand("(%s,X)", label);
     break;
 
   case _indy:
     target = fetch8Lab(label);
-    out->setOperand("(%s),Y", label);
+    out.setOperand("(%s),Y", label);
     break;
 
   case _impl:
     // Special cases: RTS and RTI
-    if ((instruction == _rts) || (instruction == _rti)) {
-      out->setType(Memory::CODE);
-      return -mem->setType(addr, Memory::CODE, pc-addr);
+    if ((op->code == _rts) || (op->code == _rti)) {
+      out.render();
+      return addr-pc;
     }
     break;
   }
 
-  out->setType(Memory::CODE);
-  //printf("addr=%04x, pc=%04x, delta=%d\n", addr, pc, pc-addr);
-  return mem->setType(addr, Memory::CODE, pc-addr);
+  out.render();
+  return pc-addr;
 }
 

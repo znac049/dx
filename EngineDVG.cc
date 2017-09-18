@@ -7,6 +7,13 @@
 
 #define BITCH(n, val) (((1<<n)&val)?'1':'0')
 
+char *EngineDVG::scales[] = {
+  "???", "x2", "x4", "x8", 
+    "x16", "x32", "x64", "x128",
+    "???", "/128", "/64", "/32",
+    "/16", "/8", "/4", "/2"
+};
+
 void EngineDVG::usage() {
   printf("CPU == 'dvg'\n");
   printf("  --game=<game name> (mandatory)\n");
@@ -72,17 +79,131 @@ void EngineDVG::initialise() {
     Utils::abortf("Unknown game '%s'", gameName);
   }
 
-  for (int i=0; i < NUM_DVG_OPS; i++) {
-    printf("%01x: %02x\n", i, opMap[i]);
-  }
+  mem->setLittleEndian();
 
-  mem->setEndian(true);
-
-  printf("Atari DVG engine ready.\n");
   stackAddress(0);
 }
 
-int EngineDVG::disassemble(long addr, OutputItem *out) {
+int EngineDVG::decode4(int word) {
+  int res = word & 0x000f;
+
+  if (res & 0x0008) {
+    res = -(res & 0x0003);
+  }
+
+  return res;
+}
+
+int EngineDVG::decode12(int word) {
+  int res = word & 0x0fff;
+
+  if (res & 0x0800) {
+    res = -(res & 0x07ff);
+  }
+
+  return res;
+}
+
+int EngineDVG::findRTSOp() {
+  for (int i=0; i<NUM_DVG_OPS; i++) {
+    if (opMap[i] == DVG_OP_VRTS) {
+      return i<<12;
+    }
+  }
+
+  return -1;
+}
+
+void EngineDVG::backup(long addr) {
+  long nBytes;
+
+  if (addr < romStart) {
+    return;
+  }
+
+  nBytes = disassemble(addr);
+  if (nBytes > 0) {
+    // Ok so try and find instructions immediately before this one
+    if (validCode(addr-2)) {
+      backup(addr-2);
+    }
+    else if (validCode(addr-4)) {
+      backup(addr-4);
+    }
+    else {
+      return;
+    }
+  }
+}
+
+bool EngineDVG::canBranch(long addr) {
+  int op = mem->getWord(addr);
+
+  op = op>>12;
+  if ((opMap[op] == DVG_OP_VJSR) || (opMap[op] == DVG_OP_VJMP)) {
+    return true;
+  }
+
+  return false;
+}
+
+long EngineDVG::branchAddress(long addr) {
+  int inst = mem->getWord(addr);
+
+  return (inst & 0x0fff) * 2;
+}
+
+bool EngineDVG::validCode(long addr) {
+  int op = mem->getWord(addr);
+
+  op = op>>12;
+  if (opMap[op] == DVG_OP_NONE) {
+    return false;
+  }
+
+  return true;
+}
+
+int EngineDVG::codeSize(long addr) {
+  int op = mem->getWord(addr);
+
+  op = op>>12;
+  switch (opMap[op]) {
+  case DVG_OP_VCOLOR:
+  case DVG_OP_VSCALE:
+  case DVG_OP_VCENTER:
+  case DVG_OP_VJSR:
+  case DVG_OP_VRTS:
+  case DVG_OP_VJMP:
+  case DVG_OP_HALT:
+  case DVG_OP_VSDRAW:
+    return 2;
+
+  case DVG_OP_VSCALED_DRAW:
+  case DVG_OP_VMOVETO:
+  case DVG_OP_VLDRAW:
+    return 4;
+
+  case DVG_OP_NONE:
+    return -2;
+  }
+}
+
+void EngineDVG::pass1() {
+  long addr;
+  int rts = findRTSOp();
+
+  // Pass 1 - disassemble everything you can
+  for (addr = romStart; addr < romEnd; addr += 2) {
+    int op = mem->getWord(addr);
+
+    if (op == rts) {
+      backup(addr);
+    }
+  }
+}
+
+int EngineDVG::disassemble(long addr) {
   int instruction;
   int *opcode;
   int immVal;
@@ -91,99 +212,60 @@ int EngineDVG::disassemble(long addr, OutputItem *out) {
   char label[MAXSTR];
   long target;
   char regName;
+  OutputItem out(labels);
 
-  pc = addr;
+  pc = addr = mem->maskAddress(addr);
 
-  out->clear();
-  out->setType(Memory::CODE);
-  out->setAddress(addr);
-
-  if (!mem->isValidAddress(addr)) {
-    Utils::abortf("disassemble() - Address $%x out of range.", addr);
-  }
-
-  if (labels->isLabel(pc)) {
-    labels->lookupLabel(pc, label);
-  }
+  out.clear();
+  out.setAddress(addr);
 
   inst = fetch16();
+
   op = (inst>>12) & 0x0f;
-  printf("OP=%d\n", op);
   op = opMap[op];
-  printf("OP=%d\n", op);
 
   switch (op) {
   case DVG_OP_VLDRAW:
     {
       int inst2 = fetch16();
-      int y = (inst & 0x0fff);
-      int x = (inst2 & 0x0fff);
+      int y = decode12(inst);
+      int x = decode12(inst2);
       int intensity = (inst2>>12) & 0x0f;
 
-      printf("%c%c%c%c %c%c%c%c%c%c%c%c%c%c%c%c\n", 
-	     BITCH(15, inst), BITCH(14, inst), BITCH(13, inst), BITCH(12, inst),
-	     BITCH(11, inst), BITCH(10, inst), BITCH(9, inst), BITCH(8, inst),
-	     BITCH(7, inst), BITCH(6, inst), BITCH(5, inst), BITCH(4, inst),
-	     BITCH(3, inst), BITCH(2, inst), BITCH(1, inst), BITCH(0, inst));
+      out.addComment("%04X: %02X %02X %02X %02X", addr, inst>>8, inst & 0xff, inst2>>8, inst2 & 0xff);
 
-      printf("%c%c%c%c %c%c%c%c%c%c%c%c%c%c%c%c\n", 
-	     BITCH(15, inst2), BITCH(14, inst2), BITCH(13, inst2), BITCH(12, inst2),
-	     BITCH(11, inst2), BITCH(10, inst2), BITCH(9, inst2), BITCH(8, inst2),
-	     BITCH(7, inst2), BITCH(6, inst2), BITCH(5, inst2), BITCH(4, inst2),
-	     BITCH(3, inst2), BITCH(2, inst2), BITCH(1, inst2), BITCH(0, inst2));
-
-      out->setInstruction("vldraw");
-      out->setOperand("%d,%d,%d", x, y, intensity);
+      out.setInstruction("VEC");
+      out.setOperand("x=%d,y=%d,i=%d", x, y, intensity);
     }
     break;
 
   case DVG_OP_VSCALED_DRAW:
     {
       int inst2 = fetch16();
-      int y = (inst & 0x0fff);
-      int x = (inst2 & 0x0fff);
+      int y = decode12(inst);
+      int x = decode12(inst2);
       int scale = (inst2>>12) & 0x0f;
 
-      printf("%c%c%c%c %c%c%c%c%c%c%c%c%c%c%c%c\n", 
-	     BITCH(15, inst), BITCH(14, inst), BITCH(13, inst), BITCH(12, inst),
-	     BITCH(11, inst), BITCH(10, inst), BITCH(9, inst), BITCH(8, inst),
-	     BITCH(7, inst), BITCH(6, inst), BITCH(5, inst), BITCH(4, inst),
-	     BITCH(3, inst), BITCH(2, inst), BITCH(1, inst), BITCH(0, inst));
-
-      printf("%c%c%c%c %c%c%c%c%c%c%c%c%c%c%c%c\n", 
-	     BITCH(15, inst2), BITCH(14, inst2), BITCH(13, inst2), BITCH(12, inst2),
-	     BITCH(11, inst2), BITCH(10, inst2), BITCH(9, inst2), BITCH(8, inst2),
-	     BITCH(7, inst2), BITCH(6, inst2), BITCH(5, inst2), BITCH(4, inst2),
-	     BITCH(3, inst2), BITCH(2, inst2), BITCH(1, inst2), BITCH(0, inst2));
-
-      out->setInstruction("vldraws%d", op);
-      out->setOperand("%d,%d,%d", x, y, scale);
+      out.addComment("%04X: %02X %02X %02X %02X %s", addr, inst>>8, inst & 0xff, inst2>>8, inst2 & 0xff, scales[scale]);
+      out.setInstruction("SSV");
+      out.setOperand("x=%d,y=%d,s=%d", x, y, scale);
     }
     break;
 
   case DVG_OP_HALT:
-    printf("%c%c%c%c     %c%c%c%c%c%c%c%c%c%c%c%c\n", 
-	   BITCH(15, inst), BITCH(14, inst), BITCH(13, inst), BITCH(12, inst),
-	   BITCH(11, inst), BITCH(10, inst), BITCH(9, inst), BITCH(8, inst),
-	   BITCH(7, inst), BITCH(6, inst), BITCH(5, inst), BITCH(4, inst),
-	   BITCH(3, inst), BITCH(2, inst), BITCH(1, inst), BITCH(0, inst));
-    
-    out->setInstruction("HALT");
+    out.addComment("%04X: %02X %02X", addr, inst>>8, inst & 0xff);
+    out.setInstruction("HALT");
     break;
 
   case DVG_OP_VSDRAW:
     {
-      int y = (inst>>8) & 0x0f;
-      int x = (inst & 0x0f);
+      int y = decode4(inst>>8);
+      int x = decode4(inst);
       int intensity = (inst >> 4) & 0x0f;
 
-      printf("%c%c%c%c   %c%c%c%c %c%c%c%c %c%c%c%c\n", 
-	     BITCH(15, inst), BITCH(14, inst), BITCH(13, inst), BITCH(12, inst),
-	     BITCH(11, inst), BITCH(10, inst), BITCH(9, inst), BITCH(8, inst),
-	     BITCH(7, inst), BITCH(6, inst), BITCH(5, inst), BITCH(4, inst),
-	     BITCH(3, inst), BITCH(2, inst), BITCH(1, inst), BITCH(0, inst));
-
-      out->setInstruction("vsdraw");
+      out.addComment("%04X: %02X %02X", addr, inst>>8, inst & 0xff);
+      out.setInstruction("SVEC");
+      out.setOperand("x=%d,y=%d,i=%d", x, y, intensity);
     }
     break;
 
@@ -191,13 +273,9 @@ int EngineDVG::disassemble(long addr, OutputItem *out) {
     {
       int scale = (inst & 0x0fff);
 
-      printf("%c%c%c%c   %c%c%c%c%c%c%c%c%c%c%c%c\n", 
-	     BITCH(15, inst), BITCH(14, inst), BITCH(13, inst), BITCH(12, inst),
-	     BITCH(11, inst), BITCH(10, inst), BITCH(9, inst), BITCH(8, inst),
-	     BITCH(7, inst), BITCH(6, inst), BITCH(5, inst), BITCH(4, inst),
-	     BITCH(3, inst), BITCH(2, inst), BITCH(1, inst), BITCH(0, inst));
-      out->setInstruction("vscale");
-      out->setOperand("%d", scale);
+      out.addComment("%04X: %02X %02X", addr, inst>>8, inst & 0xff);
+      out.setInstruction("SSC");
+      out.setOperand("%d", scale);
     }
     break;
 
@@ -206,62 +284,41 @@ int EngineDVG::disassemble(long addr, OutputItem *out) {
       int intensity = (inst & 0x00ff);
       int rgb = (inst>>8) & 0x03;
 
-      printf("%c%c%c%c   %c %c%c%c %c%c%c%c%c%c%c%c\n", 
-	     BITCH(15, inst), BITCH(14, inst), BITCH(13, inst), BITCH(12, inst),
-	     BITCH(11, inst), BITCH(10, inst), BITCH(9, inst), BITCH(8, inst),
-	     BITCH(7, inst), BITCH(6, inst), BITCH(5, inst), BITCH(4, inst),
-	     BITCH(3, inst), BITCH(2, inst), BITCH(1, inst), BITCH(0, inst));
-      out->setInstruction("vcolor");
-      out->setOperand("%d,%d", rgb, intensity);
+      out.addComment("%04X: %02X %02X", addr, inst>>8, inst & 0xff);
+      out.setInstruction("SCOL");
+      out.setOperand("%d,%d", rgb, intensity);
     }
     break;
 
   case DVG_OP_VCENTER:
-      printf("%c%c%c%c   %c%c%c%c%c%c%c%c%c%c%c%c\n", 
-	     BITCH(15, inst), BITCH(14, inst), BITCH(13, inst), BITCH(12, inst),
-	     BITCH(11, inst), BITCH(10, inst), BITCH(9, inst), BITCH(8, inst),
-	     BITCH(7, inst), BITCH(6, inst), BITCH(5, inst), BITCH(4, inst),
-	     BITCH(3, inst), BITCH(2, inst), BITCH(1, inst), BITCH(0, inst));
-      out->setInstruction("vcenter");
+    out.addComment("%02X %02X", addr, inst>>8, inst & 0xff);
+      out.setInstruction("CNTR");
     break;
 
   case DVG_OP_VJSR:
     {
       int dest = inst & 0x0fff;
 
-      printf("%c%c%c%c     %c%c%c%c%c%c%c%c%c%c%c%c\n", 
-	     BITCH(15, inst), BITCH(14, inst), BITCH(13, inst), BITCH(12, inst),
-	     BITCH(11, inst), BITCH(10, inst), BITCH(9, inst), BITCH(8, inst),
-	     BITCH(7, inst), BITCH(6, inst), BITCH(5, inst), BITCH(4, inst),
-	     BITCH(3, inst), BITCH(2, inst), BITCH(1, inst), BITCH(0, inst));
-
-      out->setInstruction("vjsr");
-      out->setOperand("$%04x", dest);
+      out.addComment("%04X: %02X %02X", addr, inst>>8, inst & 0xff);
+      out.setInstruction("JSR");
+      out.setOperand("$%04x", dest);
+      stackAddress(dest*2);
     }
     break;
 
   case DVG_OP_VRTS:
-    printf("%c%c%c%c     %c%c%c%c%c%c%c%c%c%c%c%c\n", 
-	   BITCH(15, inst), BITCH(14, inst), BITCH(13, inst), BITCH(12, inst),
-	   BITCH(11, inst), BITCH(10, inst), BITCH(9, inst), BITCH(8, inst),
-	   BITCH(7, inst), BITCH(6, inst), BITCH(5, inst), BITCH(4, inst),
-	   BITCH(3, inst), BITCH(2, inst), BITCH(1, inst), BITCH(0, inst));
-    
-    out->setInstruction("vrts");
+    out.addComment("%04X: %02X %02X", addr, inst>>8, inst & 0xff);
+    out.setInstruction("RTS");
     break;
 
   case DVG_OP_VJMP:
     {
       int dest = inst & 0x0fff;
 
-      printf("%c%c%c%c     %c%c%c%c%c%c%c%c%c%c%c%c\n", 
-	     BITCH(15, inst), BITCH(14, inst), BITCH(13, inst), BITCH(12, inst),
-	     BITCH(11, inst), BITCH(10, inst), BITCH(9, inst), BITCH(8, inst),
-	     BITCH(7, inst), BITCH(6, inst), BITCH(5, inst), BITCH(4, inst),
-	     BITCH(3, inst), BITCH(2, inst), BITCH(1, inst), BITCH(0, inst));
-
-      out->setInstruction("JMPL");
-      out->setOperand("$%04x", dest);
+      out.addComment("%04X: %02X %02X", addr, inst>>8, inst & 0xff);
+      out.setInstruction("JMP");
+      out.setOperand("$%04x", dest);
+      stackAddress(dest*2);
     }
     break;
 
@@ -271,25 +328,21 @@ int EngineDVG::disassemble(long addr, OutputItem *out) {
       int y = (inst & 0x0fff);
       int x = (inst2 & 0x0fff);
 
-      printf("%c%c%c%c %c%c%c%c%c%c%c%c%c%c%c%c\n", 
-	     BITCH(15, inst), BITCH(14, inst), BITCH(13, inst), BITCH(12, inst),
-	     BITCH(11, inst), BITCH(10, inst), BITCH(9, inst), BITCH(8, inst),
-	     BITCH(7, inst), BITCH(6, inst), BITCH(5, inst), BITCH(4, inst),
-	     BITCH(3, inst), BITCH(2, inst), BITCH(1, inst), BITCH(0, inst));
-
-      printf("%c%c%c%c %c%c%c%c%c%c%c%c%c%c%c%c\n", 
-	     BITCH(15, inst2), BITCH(14, inst2), BITCH(13, inst2), BITCH(12, inst2),
-	     BITCH(11, inst2), BITCH(10, inst2), BITCH(9, inst2), BITCH(8, inst2),
-	     BITCH(7, inst2), BITCH(6, inst2), BITCH(5, inst2), BITCH(4, inst2),
-	     BITCH(3, inst2), BITCH(2, inst2), BITCH(1, inst2), BITCH(0, inst2));
-
-      out->setInstruction("vmove");
-      out->setOperand("%d,%d", x, y);
+      out.addComment("%04X: %02X %02X", addr, inst>>8, inst & 0xff);
+      out.setInstruction("MOVE");
+      out.setOperand("%d,%d", x, y);
     }
     break;
 
+  case DVG_OP_NONE:
   default:
-    out->setInstruction("???");
+    out.addComment("%04X: %02X %02X", addr, inst>>8, inst & 0xff);
+    out.setInstruction("???");
+
+    // Unlike many disassemblers, we assume that all of the
+    // ROM image contains code
+    stackAddress(pc);
+    return -mem->setType(addr, Memory::BYTE, 2);
     break;
   }
 

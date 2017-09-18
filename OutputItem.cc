@@ -7,7 +7,8 @@
 #include "dx.h"
 
 OutputItem::OutputItem(Labels *l) {
-  labs = l;
+  renderFmt = "%-23s %-7s %-24s %c %s\n";
+  labels = l;
   clear();
 }
 
@@ -16,68 +17,60 @@ void OutputItem::clear() {
     free(comments.at(i));
   }
 
-  comments.clear();
+  startAddress = -1;
 
+  label[0] = EOS;
   instruction[0] = EOS;
   operand[0] = EOS;
-  type = Memory::BYTE;
-  startAddress = 0;
+
+  comments.clear();
+}
+
+void OutputItem::render(char *lab, char *inst, char *op, char *cmnt) {
+  if ((cmnt != NULL) && (cmnt[0] != EOS)) {
+    addComment(cmnt);
+  }
+
+  if (comments.size() == 0) {
+    printf(renderFmt, lab, inst, op, ' ', "");
+  }
+  else {
+    printf(renderFmt, lab, inst, op, ';', comments.at(0));
+    comments.erase(comments.begin());
+  }
+}
+
+void OutputItem::flushComments() {
+  for (int i=0; i<comments.size(); i++) {
+    printf(renderFmt, "", "", "", ';', comments.at(i));
+  }
+
+  clear();
+}
+
+void OutputItem::render(char *inst, char *op) {
+  render("", inst, op, NULL);
+}
+
+void OutputItem::render(char *inst) {
+  render(inst, "");
 }
 
 void OutputItem::render() {
-  static const char *fmt = "%-20s %-4s %-24s %c %s\n";
-  static const char *addressFmt = "%04x";
-  char lab[MAXSTR];
-  int nComments;
-  char *comment = (char *)"";
-  char commentChar;
-  int nLabels = labs->labelCount(startAddress);
-
-  if (nLabels != 0) {
-    printf("\n");
-
-    for (int i=1; i<nLabels; i++) {
-      char numStr[MAXSTR];
-
-      sprintf(numStr, "%d", i);
-      labs->lookupLabelAt(startAddress, lab, i);
-      printf(fmt, lab, "", "", ';', numStr);
-    }
-
-    labs->lookupLabel(startAddress, lab);
+  if (comments.size() == 0) {
+    render(label, instruction, operand, NULL);
   }
   else {
-    //snprintf(lab, MAXSTR, addressFmt, startAddress);
-    strcpy(lab, "");
+    render(label, instruction, operand, comments.at(0));
   }
+}
 
-  switch (type) {
-  case Memory::BYTE:
-    break;
+void OutputItem::setLabel(const char *fmt, ...) {
+  va_list args;
 
-  case Memory::WORD:
-    break;
-
-  case Memory::CODE:
-    break;
-
-  default:
-    strcpy(instruction, "???");
-    break;
-  }
-
-  commentChar = ' ';
-  nComments = comments.size();
-  if (nComments) {
-    comment = comments.at(0);
-    commentChar = ';';
-  }
-
-  printf(fmt, lab, instruction, operand, commentChar, comment);
-
-  for (int i=1; i<comments.size(); i++) {
-    printf(fmt, "", "", "", commentChar, comments.at(i));
-  }
+  va_start(args, fmt);
+  vsprintf(label, fmt, args);
+  va_end(args);
 }
 
 void OutputItem::setInstruction(const char *fmt, ...) {
@@ -107,11 +100,11 @@ void OutputItem::addComment(const char *fmt, ...) {
   comments.push_back(strdup(comment));
 }
 
-void OutputItem::setType(int nt) {
-  type = nt;
-}
-
 void OutputItem::setAddress(long addr) {
   startAddress = addr;
+
+  if (labels->isLabel(addr)) {
+    labels->lookupLabel(addr, label);
+  }
 }
 

@@ -29,11 +29,6 @@ class Engine6502 : DXEngine {
   };
 
   static struct Opcode codes[256];
-  static struct Opcode codes11[256];
-
-  static const char *reg[];
-  static const char index_reg[];
-  static const char *off4[];
 
   static const long RESETVec = 0xfffc;
   static const long NMIVec = 0xfffe;
@@ -50,7 +45,11 @@ class Engine6502 : DXEngine {
   virtual void initialise();
   virtual void usage();
 
-  virtual int disassemble(long addr, OutputItem *out);
+  virtual bool canBranch(long addr);
+  virtual long branchAddress(long addr);
+  virtual bool validCode(long addr);
+  virtual int codeSize(long addr);
+  virtual int disassemble(long addr);
 };
 
 #endif

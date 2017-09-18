@@ -52,7 +52,6 @@ void DXEngine::stackAddress(long addr, const char *lab) {
 
   if ((addr >= romStart) && (addr <= romEnd)) {
     if (!alreadyStacked(addr)) {
-      //printf("push $%04x\n", addr);
       addressStack.push_back(addr);
     }
   }
@@ -81,8 +80,6 @@ void DXEngine::stackRelAddress(long addr) {
 void DXEngine::readVector(long addr, const char *vecName) {
   long vector = mem->getWord(addr);
   char name[MAXSTR];
-
-  //printf("Get %s vector: $%04x\n", vecName, vector);
 
   if ((vector >= romStart) && (vector <= romEnd)) {
     addressStack.push_back(vector);
@@ -197,9 +194,49 @@ int DXEngine::fetch32() {
   return val;
 }
 
-int DXEngine::disassemble(long addr, OutputItem *out) {
+int DXEngine::disassemble(long addr) {
   printf("Bang!\n");
   return -1;
+}
+
+bool DXEngine::canBranch(long addr) {
+  return false;
+}
+
+long DXEngine::branchAddress(long addr) {
+  return -1;
+}
+
+bool DXEngine::validCode(long addr) {
+  return false;
+}
+
+int DXEngine::codeSize(long addr) {
+  return -1;
+}
+
+void DXEngine::pass1() {
+  int i=0;
+  long addr;
+  long nBytes;
+  char label[MAXSTR];
+
+  // Pass 1 - disassemble everything you can
+  while (i < addressStack.size()) {
+    addr = addressStack.at(i);
+
+    while (validCode(addr)) {
+      if (canBranch(addr)) {
+	stackAddress(branchAddress(addr));
+      }
+
+      nBytes = codeSize(addr);
+      mem->setType(addr, Memory::CODE, nBytes);
+      addr += nBytes;
+    }
+
+    i++;
+  }
 }
 
 void DXEngine::disassemble() {
@@ -210,22 +247,7 @@ void DXEngine::disassemble() {
   char label[MAXSTR];
 
   // Pass 1 - disassemble everything you can
-  while (i < addressStack.size()) {
-    addr = addressStack.at(i);
-
-    //addressStack.erase(addressStack.begin());
-
-    //printf("Disassemble from $%04x\n", addr);
-    nBytes = disassemble(addr, &out);
-    //out.render();
-    while (nBytes > 0) {
-      addr += nBytes;
-      nBytes = disassemble(addr, &out);
-      //out.render();
-    }
-
-    i++;
-  }
+  pass1();
 
   // Pass 2 - move through the rom image emitting assembly code
   labels->exportLabels();
@@ -241,7 +263,7 @@ void DXEngine::disassemble() {
     case Memory::CODE:
       flushByteStack();
 
-      nBytes = abs(disassemble(addr, &out));
+      nBytes = abs(disassemble(addr));
 
       addr += nBytes;
       out.render();
@@ -249,7 +271,7 @@ void DXEngine::disassemble() {
 
     case Memory::UNKNOWN:
     case Memory::BYTE:
-      stackByte(mem->getByte(addr));
+      stackByte(mem->getByte(addr), addr);
 
       addr++;
       break;
@@ -310,10 +332,14 @@ void DXEngine::dump() {
   mem->dump();
 }
 
-void DXEngine::stackByte(int byte) {
+void DXEngine::stackByte(int byte, long addr) {
   // Is there room to stack this?
   if (byteStack.size() >= 4) {
     flushByteStack();
+  }
+
+  if (byteStack.size() == 0) {
+    byteStackAddr = addr;
   }
 
   byteStack.push_back(byte);
@@ -326,7 +352,6 @@ void DXEngine::flushByteStack() {
   int stackSize = byteStack.size();
 
   if (byteStack.size() > 0) {
-    out.setType(Memory::BYTE);
     strcpy(data, "");
 
     for (int i=0; i<stackSize; i++) {
@@ -338,6 +363,7 @@ void DXEngine::flushByteStack() {
       strcat(data, single);
     }
 
+    out.setAddress(byteStackAddr);
     out.setInstruction(byteDirective);
     out.setOperand(data);
     out.render();

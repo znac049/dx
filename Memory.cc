@@ -62,6 +62,14 @@ void Memory::setEndian(bool big) {
   bigEndian = big;
 }
 
+void Memory::setBigEndian() {
+  setEndian(true);
+}
+
+void Memory::setLittleEndian() {
+  setEndian(false);
+}
+
 void Memory::setAddressMask(long mask) {
   addressMask = mask;
 }
