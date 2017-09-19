@@ -26,6 +26,13 @@ void OutputItem::clear() {
   comments.clear();
 }
 
+void OutputItem::set(char *lab, char *inst, char *op, char *cmnt) {
+  setLabel(lab);
+  setInstruction(inst);
+  setOperand(op);
+  addComment(cmnt);
+}
+
 void OutputItem::render(char *lab, char *inst, char *op, char *cmnt) {
   if ((cmnt != NULL) && (cmnt[0] != EOS)) {
     addComment(cmnt);
@@ -64,6 +71,11 @@ void OutputItem::flushComments() {
 
 void OutputItem::render(char *inst, char *op) {
   render("", inst, op, NULL);
+}
+
+void OutputItem::set(char *inst, char *op) {
+  setInstruction(inst);
+  setOperand(op);
 }
 
 void OutputItem::render(char *inst) {
@@ -107,11 +119,13 @@ void OutputItem::addComment(const char *fmt, ...) {
   va_list args;
   char comment[MAXSTR];
 
-  va_start(args, fmt);
-  vsprintf(comment, fmt, args);
-  va_end(args);
+  if (fmt != NULL) {
+    va_start(args, fmt);
+    vsprintf(comment, fmt, args);
+    va_end(args);
 
-  comments.push_back(strdup(comment));
+    comments.push_back(strdup(comment));
+  }
 }
 
 void OutputItem::setAddress(long addr) {

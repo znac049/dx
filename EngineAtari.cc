@@ -446,48 +446,120 @@ void EngineAtari::genOperand(Opcode *op, OutputItem *out) {
   char label[MAXSTR];
 
   switch (op->mode) {
+  case _rel:
+    {
+      // All the branch instructions only have a single mode - relative
+      long offset = fetch8();
+      long rel = offset;
+
+      if (offset & 0x80) {
+	rel = (~rel & 0xff) + 1;
+	target = pc - rel;
+      }
+      else {
+	target = pc + rel;
+      }
+
+      if (labels->isLabel(target)) {
+	labels->lookupLabel(target, label);
+      }
+      else {
+	snprintf(label, MAXSTR-1, "L%04x", target);
+      }
+
+      out->addComment("Relative");
+      out->setOperand(label);
+    }
+    break;
+
   case _zpg:
     target = fetch8Lab(label);
     out->setOperand("<%s", label);
+    out->addComment("Zero page");
     break;
 
   case _immed:
     out->setOperand("#$%02x", fetch8());
+    out->addComment("Immediate");
     break;
 
   case _abs:
     target = fetch16Lab(label);
     out->setOperand(label);
+    out->addComment("Absolute");
     break;
 
   case _absx:
+    target = fetch16Lab(label);
+    out->setOperand("%s,x", label);
+    out->addComment("Absolute, X");
     break;
 
   case _absy:
+    target = fetch16Lab(label);
+    out->setOperand("%s,y", label);
+    out->addComment("Absolute, Y");
     break;
 
   case _accum:
+    out->addComment("Accumulator");
     break;
 
   case _zpgx:
+    target = fetch8Lab(label);
+    out->setOperand("%s,x", label);
+    out->addComment("Zero page, X");
     break;
 
   case _zpgy:
-    break;
-
-  case _rel:
+    target = fetch8Lab(label);
+    out->setOperand("%s,y", label);
+    out->addComment("Zero page, Y");
     break;
 
   case _ind:
+    target = fetch16Lab(label);
+    out->setOperand("[%s]", label);
+    out->addComment("Indirect");
     break;
 
   case _xind:
+    {
+      char inst[MAXSTR];
+
+      target = fetch8Lab(label);
+      strcpy(inst, out->getInstruction());
+
+      out->setInstruction("leau");
+      out->setOperand("%s,x", label);
+      out->addComment("X, Indirect");
+      out->render();
+      out->setInstruction(inst);
+      out->setOperand(",u");
+    }
     break;
 
   case _indy:
+    {
+      char inst[MAXSTR];
+
+      target = fetch8Lab(label);
+      strcpy(inst, out->getInstruction());
+      
+      out->setInstruction("ldu");
+      out->setOperand(",u");
+      out->addComment("Indirect, Y");
+      out->render();
+      out->setInstruction("leau");
+      out->setOperand("%s,u", label);
+      out->render();
+      out->setInstruction(inst);
+      out->setOperand(",u");
+    }
     break;
 
   case _impl:
+    out->addComment("Implicit");
     break;
   }
 }
@@ -511,13 +583,22 @@ int EngineAtari::disassemble(long addr) {
 
   switch (op->code) {
   case _adc:
+    out.setInstruction("adcb");
+    genOperand(op, &out);
     break;
 
   case _and:
+    out.setInstruction("andb");
     genOperand(op, &out);
     break;
 
   case _asl:
+    if (op->mode == _accum) {
+      out.setInstruction("aslb");
+    }
+    else {
+      genOperand(op, &out);    
+    }
     break;
 
   case _bcc:
@@ -528,28 +609,12 @@ int EngineAtari::disassemble(long addr) {
   case _bpl:
   case _bvc:
   case _bvs:
-    {
-      // All the branch instructions only have a single mode - relative
-      long offset = fetch8();
-      long rel = offset;
+    genOperand(op, &out);
+    break;
 
-      if (offset & 0x80) {
-	rel = (~rel & 0xff) + 1;
-	target = pc - rel;
-      }
-      else {
-	target = pc + rel;
-      }
-
-      if (labels->isLabel(target)) {
-	labels->lookupLabel(target, label);
-      }
-      else {
-	snprintf(label, MAXSTR-1, "L_%04x", target);
-      }
-
-      out.setOperand(label);
-    }
+  case _bit:
+    out.setInstruction("andb");
+    genOperand(op, &out);
     break;
 
   case _brk:
@@ -557,51 +622,93 @@ int EngineAtari::disassemble(long addr) {
     break;
 
   case _clc:
+    out.set("andcc", "#$fe");
     break;
 
   case _cld:
+    /* Never used in the Atari ROMs and a bit faffy to deal with
+     * so we'll ignore it for now */
+    out.setInstruction("");
+    out.addComment("CLD!!!");
     break;
 
   case _cli:
+    out.set("andcc", "#$ef");
     break;
 
   case _clv:
+    /* Never used in the Atari ROMs and a bit faffy to deal with
+     * so we'll ignore it for now */
     break;
 
   case _cmp:
+    out.setInstruction("cmpb");
+    genOperand(op, &out);
     break;
 
   case _cpx:
+    out.render("exg", "d,x");
+    out.setInstruction("cmpb");
+    genOperand(op, &out);
+    out.render();
+    out.set("exg", "d,x");
     break;
 
   case _cpy:
+    out.render("exg", "d,y");
+    out.setInstruction("cmpb");
+    genOperand(op, &out);
+    out.render();
+    out.set("exg", "d,y");
     break;
 
   case _dec:
+    genOperand(op, &out);
     break;
 
   case _dex:
+    out.render("exg", "d,y");
+    out.render("lda", "#0");
+    out.render("decb");
+    out.set("exg", "d,y");
     break;
 
   case _dey:
+    out.render("exg", "d,y");
+    out.render("lda", "#0");
+    out.render("decb");
+    out.set("exg", "d,y");
     break;
 
   case _eor:
+    out.setInstruction("eorb");
+    genOperand(op, &out);
     break;
 
   case _inc:
+    genOperand(op, &out);
     break;
 
   case _inx:
+    out.render("exg", "d,x");
+    out.render("lda", "#0");
+    out.render("incb");
+    out.set("exg", "d,x");
     break;
 
   case _iny:
+    out.render("exg", "d,y");
+    out.render("lda", "#0");
+    out.render("incb");
+    out.set("exg", "d,y");
     break;
 
   case _jmp:
+    genOperand(op, &out);
     break;
 
   case _jsr:
+    genOperand(op, &out);
     break;
 
   case _lda:
@@ -610,69 +717,143 @@ int EngineAtari::disassemble(long addr) {
     break;
 
   case _ldx:
+    out.render("exg", "d,x");
+    out.render("lda", "#0");
+    out.setInstruction("ldb");
+    genOperand(op, &out);
+    out.render();
+    out.set("exg", "d,x");
     break;
 
   case _ldy:
+    out.render("exg", "d,y");
+    out.render("lda", "#0");
+    out.setInstruction("ldb");
+    genOperand(op, &out);
+    out.render();
+    out.set("exg", "d,y");
     break;
 
   case _lsr:
+    if (op->mode == _accum) {
+      out.setInstruction("lsrb");
+    }
+    else {
+      genOperand(op, &out);
+    }
     break;
 
   case _nop:
     break;
 
   case _ora:
+    out.setInstruction("orb");
+    genOperand(op, &out);
     break;
 
   case _pha:
+    out.set("pshs", "b");
     break;
 
   case _php:
+    out.set("pshs", "cc");
     break;
 
   case _pla:
+    out.set("puls", "b");
     break;
 
   case _plp:
+    out.set("puls", "cc");
     break;
 
   case _rol:
+    if (op->mode == _accum) {
+      out.setInstruction("rolb");
+    }
+    else {
+      genOperand(op, &out);
+    }
     break;
 
   case _ror:
+    if (op->mode == _accum) {
+      out.setInstruction("rorb");
+    }
+    else {
+      genOperand(op, &out);
+    }
     break;
 
   case _rti:
     break;
 
+  case _rts:
+    break;
+
   case _sbc:
+    out.setInstruction("sbcb");
+    genOperand(op, &out);
     break;
 
   case _sec:
+    out.set("orcc", "#$01");
     break;
 
   case _sed:
+    /* Rarely used in the Atari ROMs and a bit faffy to deal with
+     * so we'll ignore it for now */
+    out.setInstruction("");
+    out.addComment("SED!!!");
     break;
 
   case _sei:
+    out.set("orcc", "#$10");
     break;
 
   case _sta:
+    /* May need to save/restore CC */
+    out.setInstruction("stb");
+    genOperand(op, &out);
     break;
 
   case _stx:
+    /* May need to save/restore CC */
+    out.render("exg", "d,x");
+    out.setInstruction("stb");
+    genOperand(op, &out);
+    out.render();
+    out.set("exg", "d,x");
     break;
 
   case _sty:
+    /* May need to save/restore CC */
+    out.render("exg", "d,y");
+    out.setInstruction("stb");
+    genOperand(op, &out);
+    out.render();
+    out.set("exg", "d,y");
     break;
 
   case _tax:
+    out.render("lda", "#0");
+    out.render("tstb");
+    out.set("tfr", "d,x");
     break;
 
   case _tay:
+    out.render("lda", "#0");
+    out.render("tstb");
+    out.set("tfr", "d,y");
     break;
 
   case _tsx:
+    out.render("tfr", "d,u");
+    out.render("tfr", "s,d");
+    out.render("lda", "#0");
+    out.render("decb");
+    out.render("tfr", "d,x");
+    out.set("tfr", "u,d");
     break;
 
   case _txa:
@@ -681,6 +862,15 @@ int EngineAtari::disassemble(long addr) {
     break;
 
   case _txs:
+    out.render("tfr", "d,u");
+    out.render("tfr", "x,d");
+    out.render("tfr", "cc,dp");
+    out.render("incb");
+    out.render("tfr", "dp,cc");
+    out.render("lda", "#0");
+    out.render("tfr", "a,dp");
+    out.render("tfr", "d,s");
+    out.set("tfr", "u,d");
     break;
 
   case _tya:
@@ -691,10 +881,11 @@ int EngineAtari::disassemble(long addr) {
     break;
 
   default:
-    out.setInstruction("BADOP");
+    out.setInstruction("BADOP-%02x", inst);
   }
 
   out.render();
+  out.flushComments();
   return pc-addr;
 }
 

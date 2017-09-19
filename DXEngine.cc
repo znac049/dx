@@ -266,7 +266,6 @@ void DXEngine::disassemble() {
       nBytes = abs(disassemble(addr));
 
       addr += nBytes;
-      out.render();
       break;
 
     case Memory::UNKNOWN:

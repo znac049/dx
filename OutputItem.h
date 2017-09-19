@@ -17,6 +17,9 @@ class OutputItem {
   OutputItem(Labels *l);
 
   void clear();
+  void set(char *inst, char *op);
+  void set(char *lab, char *inst, char *op, char *cmnt);
+
   void render();
   void render(char *inst);
   void render(char *inst, char *op);
@@ -25,6 +28,7 @@ class OutputItem {
 
   void setLabel(const char *fmt, ...);
   void setInstruction(const char *fmt, ...);
+  char *getInstruction() { return instruction; };
   void setOperand(const char *fmt, ...);
   void addComment(const char *fmt, ...);
   void setType(int newType);
