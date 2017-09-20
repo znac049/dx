@@ -45,6 +45,7 @@ class Engine6502 : DXEngine {
   virtual void initialise();
   virtual void usage();
 
+  virtual bool willBranch(long addr);
   virtual bool canBranch(long addr);
   virtual long branchAddress(long addr);
   virtual bool validCode(long addr);

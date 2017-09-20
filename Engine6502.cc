@@ -362,6 +362,17 @@ void Engine6502::initialise() {
   mem->setType(IRQVec, Memory::WORD, 3);
 }
 
+bool Engine6502::willBranch(long addr) {
+  int inst = mem->getByte(addr);
+  Engine6502::Opcode *op = &(codes[inst]);
+
+  if ((op->code == _jmp) || (op->code == _rts) || (op->code == _rti)) {
+    return true;
+  }
+
+  return false;
+}
+
 bool Engine6502::canBranch(long addr) {
   int inst = mem->getByte(addr);
   Engine6502::Opcode *op = &(codes[inst]);
@@ -452,7 +463,8 @@ int Engine6502::disassemble(long addr) {
 
   out.clear();
   out.setAddress(addr);
-  out.addComment("%04X", addr);
+  commentBytes(addr, &out);
+  //out.addComment("%04X", addr);
 
   inst = fetch8();
   op = &(codes[inst]);

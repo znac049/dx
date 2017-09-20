@@ -70,7 +70,7 @@ void OutputItem::flushComments() {
 }
 
 void OutputItem::render(char *inst, char *op) {
-  render("", inst, op, NULL);
+  render(NULL, inst, op, NULL);
 }
 
 void OutputItem::set(char *inst, char *op) {
@@ -79,7 +79,7 @@ void OutputItem::set(char *inst, char *op) {
 }
 
 void OutputItem::render(char *inst) {
-  render(inst, "");
+  render(inst, NULL);
 }
 
 void OutputItem::render() {

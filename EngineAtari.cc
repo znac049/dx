@@ -362,6 +362,28 @@ void EngineAtari::initialise() {
   mem->setType(IRQVec, Memory::WORD, 3);
 }
 
+void EngineAtari::preamble() {
+  OutputItem out(labels);
+
+  out.render("pragma", "autobranchlength");
+  out.render("pragma", "6809");
+  printf("\n");
+
+  out.render("org", "$6000");
+  printf("\n");
+}
+
+bool EngineAtari::willBranch(long addr) {
+  int inst = mem->getByte(addr);
+  EngineAtari::Opcode *op = &(codes[inst]);
+
+  if ((op->code == _jmp) || (op->code == _rts) || (op->code == _rti)) {
+    return true;
+  }
+
+  return false;
+}
+
 bool EngineAtari::canBranch(long addr) {
   int inst = mem->getByte(addr);
   EngineAtari::Opcode *op = &(codes[inst]);
@@ -575,7 +597,8 @@ int EngineAtari::disassemble(long addr) {
 
   out.clear();
   out.setAddress(addr);
-  out.addComment("%04X", addr);
+  commentBytes(addr, &out);
+  //out.addComment("%04X", addr);
 
   inst = fetch8();
   op = &(codes[inst]);
@@ -639,6 +662,8 @@ int EngineAtari::disassemble(long addr) {
   case _clv:
     /* Never used in the Atari ROMs and a bit faffy to deal with
      * so we'll ignore it for now */
+    out.setInstruction("");
+    out.addComment("CLV!!!");
     break;
 
   case _cmp:
@@ -886,6 +911,8 @@ int EngineAtari::disassemble(long addr) {
 
   out.render();
   out.flushComments();
+  printf("\n");
+
   return pc-addr;
 }
 

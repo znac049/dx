@@ -33,6 +33,7 @@ class DXEngine {
 
   virtual void initialise();
   virtual void usage();
+  virtual void preamble();
 
   int fetch8();
   int fetch8Rel();
@@ -50,11 +51,13 @@ class DXEngine {
   void stackRelAddress(long addr);
   void readVector(long addr, const char *vecName);
 
+  virtual void commentBytes(long addr, OutputItem *out);
+  virtual bool willBranch(long addr);
   virtual bool canBranch(long addr);
   virtual long branchAddress(long addr);
   virtual bool validCode(long addr);
   virtual int codeSize(long addr);
-
+  
   void disassemble();
   virtual int disassemble(long addr);
   virtual void pass1();

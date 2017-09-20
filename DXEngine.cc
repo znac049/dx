@@ -43,6 +43,9 @@ bool DXEngine::alreadyStacked(long addr) {
   return false;
 }
 
+void DXEngine::preamble() {
+}
+
 void DXEngine::stackAddress(long addr, const char *lab) {
   addr = mem->maskAddress(addr);
 
@@ -71,10 +74,8 @@ void DXEngine::stackRelAddress(long addr) {
 
   addr = mem->maskAddress(addr);
 
-  if (!labels->isLabel(addr)) {
-    sprintf(lab, "R%04x", addr);
-    stackAddress(addr, lab);
-  }
+  sprintf(lab, "R%04x", addr);
+  stackAddress(addr, lab);
 }
 
 void DXEngine::readVector(long addr, const char *vecName) {
@@ -84,6 +85,7 @@ void DXEngine::readVector(long addr, const char *vecName) {
   if ((vector >= romStart) && (vector <= romEnd)) {
     addressStack.push_back(vector);
     snprintf(name, MAXSTR-1, "%s_Handler", vecName);
+    //printf("Create label '%s' @$%04x\n", name, vector);
     labels->createLabel(name, vector);
   }
 
@@ -199,6 +201,10 @@ int DXEngine::disassemble(long addr) {
   return -1;
 }
 
+bool DXEngine::willBranch(long addr) {
+  return false;
+}
+
 bool DXEngine::canBranch(long addr) {
   return false;
 }
@@ -213,6 +219,26 @@ bool DXEngine::validCode(long addr) {
 
 int DXEngine::codeSize(long addr) {
   return -1;
+}
+
+void DXEngine::commentBytes(long addr, OutputItem *out) {
+  int nBytes = codeSize(addr);
+  char tmp[MAXSTR];
+
+  if ((nBytes > 0) && (nBytes < 16)) {
+    sprintf(tmp, "%04X: ", addr);
+
+    for (int i=0; i<nBytes; i++) {
+      char *cp = &tmp[strlen(tmp)];
+
+      sprintf(cp, " %02X", mem->getByte(addr+i));
+    }
+
+    out->addComment(tmp);
+  }
+  else {
+    out->addComment("%04X", addr);
+  }
 }
 
 void DXEngine::pass1() {
@@ -232,6 +258,11 @@ void DXEngine::pass1() {
 
       nBytes = codeSize(addr);
       mem->setType(addr, Memory::CODE, nBytes);
+
+      if (willBranch(addr)) {
+	break;
+      }
+
       addr += nBytes;
     }
 
@@ -250,6 +281,7 @@ void DXEngine::disassemble() {
   pass1();
 
   // Pass 2 - move through the rom image emitting assembly code
+  preamble();
   labels->exportLabels();
 
   printf("\n");

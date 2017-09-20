@@ -46,7 +46,9 @@ class EngineAtari : DXEngine {
  EngineAtari(Args *args, long beg, long end, long mask, const char *file) : DXEngine(args, beg, end, mask, file) {};
   virtual void initialise();
   virtual void usage();
+  virtual void preamble();
 
+  virtual bool willBranch(long addr);
   virtual bool canBranch(long addr);
   virtual long branchAddress(long addr);
   virtual bool validCode(long addr);
